@@ -25,7 +25,8 @@ DATE_FORMAT_OUT = "%Y-%m-%d %H:%M" # 2022-08-25 22:30
 all_lengths = []
 
 def get_main_page():
-    URL = BASE_URL + "liff-2022-films/?Date=All+Dates&Strand=&Country=&Venue=&SortOrder=0&PageSize=10000&Page=1#festival-filter-form"
+    #URL = BASE_URL + "liff-2022-films/?Date=All+Dates&Strand=&Country=&Venue=&SortOrder=0&PageSize=10000&Page=1#festival-filter-form"
+    URL = BASE_URL + "whats-on/?Date=All+Dates&Strand=&Country=&Venue=&SortOrder=0&PageSize=10000&Page=1#festival-filter-form"
     FILE = 'allfilm.html'
 
     if not os.path.exists(FILE) or args.clean:
@@ -59,24 +60,20 @@ def handle_film(url):
 
     tag_list = section.find("div", class_="tag-list")
     tags = tag_list.find_all("span", class_="tag")
-    if len(tags) >= 4:
-        length_tag = tags[3]
+    
+    length_tag = None
+    for tag in tags:
+        if "minutes" in tag.text:
+            length_tag = tag
+
+    if length_tag is None:
+        logging.error(f"Failed to get length for film {title}")
+        minutes = 240 # Just make it mad long so I can spot it and fix it.
+    else:
         length = length_tag.text
         all_lengths.append(length)
-    else:
-        all_lengths.append("NONE")
-        length = "1hr"
-
-    length_parts = length.split(" ")
-    hour_part = length_parts[0]
-    hours = int(re.search(r"(\d+)hr", hour_part).group(1))
-    minutes = 0
-    if len(length_parts)>1:
-        minute_part = length_parts[1]
-        match = re.search(r"(\d+)min", minute_part)
-        if match is not None:
-            minutes = int(match.group(1))
-
+        length_parts = length.split(" ")
+        minutes = int(length_parts[0])
 
     desc_section  =page.find("section", class_="main-content")
     desc_ps = desc_section.find_all("p")
@@ -92,6 +89,11 @@ def handle_film(url):
     desc = "\n".join(descs)
     
     book_section = page.find("section", class_="book-your-tickets")
+
+    if book_section is None:
+        logging.warning(f"Film {title} has no show times. Skipping")
+        return
+
     book_table = book_section.find("table")
     book_table_body = book_table.find("tbody")
     book_rows = book_table_body.find_all("tr")
@@ -111,7 +113,7 @@ def handle_film(url):
         date = " ".join(date_parts) + " " + time
         
         parsed_date = datetime.datetime.strptime(date, DATE_FORMAT_IN)
-        parsed_end = parsed_date + datetime.timedelta(hours=hours, minutes=minutes)
+        parsed_end = parsed_date + datetime.timedelta(minutes=minutes)
         log.debug(f'{title} [{venue}] {date} {time}')
 
         item = {}
