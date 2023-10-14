@@ -9,7 +9,8 @@ import datetime
 import re
 
 parser=argparse.ArgumentParser()
-parser.add_argument('--clean', help="clean", action="store_true")
+parser.add_argument('--clean', help="discard any previous cached html", action="store_true")
+parser.add_argument('--single', help="run on a single film url", action="store")
 args = parser.parse_args()
 
 logging.basicConfig()
@@ -131,7 +132,10 @@ def handle_film(url):
 
 
 if __name__ == '__main__':
-    go()
+    if args.single:
+        handle_film(args.single)
+    else:
+        go()
 output_file.close()
 
 for x in all_lengths:
