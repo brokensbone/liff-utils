@@ -1,6 +1,6 @@
 import os
 import logging
-import PyPDF2
+import pdfquery
 import re
 import argparse
 import shutil
@@ -9,27 +9,25 @@ import json
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger()
 
+logging.getLogger('pdfminer').setLevel(logging.INFO)
+
 parser=argparse.ArgumentParser()
 parser.add_argument('--file', help="catalog to read", action="store", default='/Users/edward/develop/liff-utils/catalog/liff2015-guide.pdf')
 parser.add_argument('--schema', help="catalog to read", action="store", default='/Users/edward/develop/liff-utils/catalog/schema/2015.json')
-parser.add_argument('--testpage', help="page to do a test full text extract on", action="store", type=int)
-parser.add_argument('--extractpage', help="page to do a test data extract on", action="store", type=int)
+parser.add_argument('--test', help="page to do a test full text extract on", action="store_true")
+parser.add_argument('--extract', help="page to do a test data extract on", action="store_true")
+parser.add_argument('--page', help="page to do a tests on", action="store", type=int)
 args = parser.parse_args()
 
 def process(fp):
     f = open(fp, 'rb')
-    pdf = PyPDF2.PdfReader(f)
-    page_count = len(pdf.pages)
-
-    logging.info(f"Read {page_count} pages from {fp}")
-    if args.testpage:
+    pdf = pdfquery.PDFQuery(f)
+    if args.test:
         # in this mode, get all the text, sorted by y placement.
         parts = {}
-        def hash_by_y_placement(text, cm, tm, fontDict, fontSize):
-            y = tm[5]
-            if len(text.strip()) > 0:
-                parts[y] = text.strip()
-        pdf.pages[args.testpage].extract_text(visitor_text=hash_by_y_placement)
+        pdf.load(args.page)
+        elements = pdf.pq(':in_bbox("0,0,480,630")')
+        parts = { float(e.attrib['y0']) : e for e in elements }
 
         # dump as csv.
         with open('./catalog/testpage.csv', 'w') as outfile:
@@ -37,28 +35,82 @@ def process(fp):
             keys.reverse()
             for k in keys:
                 v = parts[k]
-                outfile.write(f"{k},{v}\n")
+                outfile.write(f"{k},{v.attrib['y1']},{v.text}\n")
         return
     
     with open(args.schema) as json_file:
         schema = json.load(json_file)
-    parsed = [ {} for x in schema ]
-    if args.extractpage:
-        def visitor_body(text, cm, tm, fontDict, fontSize):
-            y = tm[5]
-            if len(text.strip()) == 0:
-                return
-            text = text.strip()
-            for ix, container in enumerate(schema):
-                for item, location in container.items():
-                    if location[0] < y and y <=location[1]:
-                        if parsed[ix].get(item, None) is None:
-                            parsed[ix][item] = []
-                        parsed[ix][item].append(text)
+    
+    if args.extract:
 
-        pdf.pages[args.extractpage].extract_text(visitor_text=visitor_body)
-        with open('./catalog/extractpage.json', 'w') as json_out:
-            json.dump(parsed, json_out, indent=4)
+        logging.info("Start load...")
+        if args.page:
+            pdf.load(args.page)
+        else:
+            pdf.load()
+        logging.info("End load")
+
+        def hash_elements_by_page_number(elements):
+            ret = {}
+            for e in elements:
+                page_pq = next(e.iterancestors('LTPage'))
+                page_num = int(page_pq.layout.pageid)
+                items = ret.get(page_num, None)
+                if items is None:
+                    items = []
+                    ret[page_num] = items
+                items.append(e)
+            return ret
+        
+        def get_elements_in_y_order(elements):
+            parts = { float(e.attrib['y0']) : e for e in page_elements if e.text is not None }
+            keys = sorted(parts.keys())
+            keys.reverse()
+            return [ parts[k] for k in keys ]
+    
+        def safe_get_char_col(element):
+            try:
+                return next(e for e in element.layout).graphicstate.ncolor[0]
+            except:
+                logging.warn("Failed to read a char colour")
+                return -1
+    
+        def parse_ordered_elements_as_film(elements):
+            film = {'title' : None, 'info' : [], 'screenings': [], 'blurb': []}
+            for element in elements:
+                line = element.text
+                char_col = safe_get_char_col(element)
+                if film['title'] is None:
+                    film['title'] = line
+                elif char_col == 0.429:
+                    film['info'].append(line)
+                elif char_col == 0.024:
+                    film['screenings'].append(line)
+                elif char_col == 0:
+                    film['blurb'].append(line)
+                else:
+                    logging.warning(f"Unexpected line colour {char_col} [{line}]")
+                    film['blurb'].append(line)
+            validate = all([(film[k]) for k in film.keys()])
+            film['full_read'] = validate
+            return film
+        
+        
+        bounds = [ f"0,{d[0]},480,{d[1]}" for d in schema ]
+        films = []
+        logging.info("Start parsing...")
+        for ix, bound in enumerate(bounds):
+            elements = pdf.pq(':in_bbox("{}")'.format(bound))
+            elements_by_page = hash_elements_by_page_number(elements)
+            for page_num, page_elements in elements_by_page.items():
+                film_parts = get_elements_in_y_order(page_elements)
+                film = parse_ordered_elements_as_film(film_parts)
+                film['page_no'] = page_num
+                films.append(film)
+        logging.info("End parsing...")
+
+        with open('./catalog/extractfilms.json', 'w') as json_out:
+            json.dump(films, json_out, indent=4)
 
     else:
 
