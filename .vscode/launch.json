@@ -29,6 +29,14 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": ["--single", "https://www.leedsfilm.com/whats-on/96/dir-gene-kelly/singin-in-the-rain-free-breakfast-screening"]
+        },
+        {
+            "name": "Split",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/ticket-split.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
         }
     ]
 }
