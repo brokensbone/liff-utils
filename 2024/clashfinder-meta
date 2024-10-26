@@ -1,0 +1,12 @@
+maintitle = Leeds International Film Festival (LIFF) 2024 Clashfinder
+timezone = Europe/London
+dateFormat = dddd dS mmmm
+printAdvisory = 4
+footer = Times liable to change
+footer = Rev [revnum] ([editdate])
+daychangeover = 08:00
+lpHeading = Leeds International Film Festival (LIFF) 2024 Clashfinder
+lpPara = Leeds International Film Festival (LIFF) 2024. If you notice a mistake, please leave a comment or find @edsalkeld on Instagram/Threads.
+lpRevisions
+lpComments
+defaults = mob-cf-times=>on
