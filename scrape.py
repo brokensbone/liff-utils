@@ -1,4 +1,6 @@
 import logging
+import sqlite3
+import time
 import requests
 from bs4 import BeautifulSoup
 import argparse
@@ -49,6 +51,7 @@ def get_main_page(ix):
 
 def go():
     log.debug("hello")
+    cx = sqlite3.connect("html.db")
 
     for ix in range(4):
         log.info(f"DOING PAGE {ix}")
@@ -61,7 +64,7 @@ def go():
         for film_link in film_links:
             url = BASE_URL + film_link["href"]
             log.debug(url)
-            handle_film(url)
+            handle_film(url, cx)
 
 
 def skip_text(text):
@@ -72,15 +75,45 @@ def skip_text(text):
     return False
 
 
-def handle_film(url):
+def retrieve_film(db: sqlite3.Connection, url: str, backoff: int = 1):
+    c = db.cursor()
+    c.execute("SELECT html FROM cache WHERE url = ?", (url,))
+    row = c.fetchone()
+    if row:
+        log.info(f"{url} from cache")
+        c.close()
+        return row[0]
+
+    log.info(f"{url} needs retrieving")
     film_page = requests.get(url)
-    page = BeautifulSoup(film_page.content, "html.parser")
+    if film_page.status_code == 429:
+        c.close()
+        if backoff < 60:
+            logging.info(f"Backing off for {backoff}")
+            time.sleep(backoff)
+            retrieve_film(db, url, backoff=backoff * 2)
+        else:
+            logging.error("Giving up")
+        return
+    c.execute("INSERT INTO cache VALUES (?,?)", (url, film_page.content))
+    db.commit()
+    c.close()
+    return film_page.content
+
+
+def handle_film(url: str, cx: sqlite3.Connection):
+    film_page = retrieve_film(cx, url)
+    if not film_page:
+        return
+    page = BeautifulSoup(film_page, "html.parser")
 
     # sort the title out
     section = page.find("div", class_="desc")
-    title_span = section.find("h1", class_="with-supertitle")
-    if not title_span:
-        title_span = section.find("h1")
+    title_span = None
+    if section:
+        title_span = section.find("h1", class_="with-supertitle")
+        if not title_span:
+            title_span = section.find("h1")
 
     if not title_span:
         log.error(f"{url} has no obvious title. Skipping")
@@ -93,11 +126,13 @@ def handle_film(url):
         logging.error(f"{url} has no info. Skipping")
         return
 
+    log.info(f"DEBUG EXTRAINFO {extra_info.text}")
     run_time_match = re.search(
-        r"(?:Running time|Runtime|runtime):\s([0-9]*) [Mm]inutes", extra_info.text
+        r"(?:Running time|Runtime|runtime):*\s([0-9]*) (?:[Mm]inutes|[Mm]ins)",
+        extra_info.text,
     )
     run_time_match_loose = re.search(
-        r"(?:Running time|Runtime|runtime):\s([0-9]*)", extra_info.text
+        r"(?:Running time|Runtime|runtime):*\s([0-9]*)", extra_info.text
     )
     if run_time_match is None and run_time_match_loose is None:
         logging.error(f"{url} Failed to get length for film {title}")
@@ -163,7 +198,7 @@ def handle_film(url):
 
 
 def build_date_range(minutes, date_text, time_text):
-    date = f"{date_text} 2024 {time_text}"
+    date = f"{date_text} 2025 {time_text}"
     parsed_date = datetime.datetime.strptime(date, DATE_FORMAT_IN)
     parsed_end = parsed_date + datetime.timedelta(minutes=minutes)
     return parsed_date, parsed_end
