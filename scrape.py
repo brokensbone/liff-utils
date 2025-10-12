@@ -239,7 +239,8 @@ def extract_venue(book_row):
 
 if __name__ == "__main__":
     if args.single:
-        handle_film(args.single)
+        cx = sqlite3.connect("html.db")
+        handle_film(args.single, cx)
     else:
         go()
 output_file.close()
