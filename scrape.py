@@ -17,18 +17,23 @@ logging.basicConfig()
 log = logging.getLogger()
 log.setLevel("DEBUG")
 
+err_handler = logging.FileHandler('errors.log')
+err_handler.setLevel(logging.ERROR)
+log.addHandler(err_handler)
+
 output_file = open('clashfinder', 'w')
 
-BASE_URL = "https://www.leedsfilm.com/"
-DATE_FORMAT_IN = "%d %B %Y %H:%M" # 15 November 2022 13:15
+BASE_URL = "https://www.leedsfilm.com"
+DATE_FORMAT_IN = "%a %d %b %Y %H:%M" # Fri 6 Nov 2022 13:15
 DATE_FORMAT_OUT = "%Y-%m-%d %H:%M" # 2022-08-25 22:30
 
 all_lengths = []
 
-def get_main_page():
+def get_main_page(ix):
     #URL = BASE_URL + "liff-2022-films/?Date=All+Dates&Strand=&Country=&Venue=&SortOrder=0&PageSize=10000&Page=1#festival-filter-form"
-    URL = BASE_URL + "whats-on/?Date=All+Dates&Strand=&Country=&Venue=&SortOrder=0&PageSize=10000&Page=1#festival-filter-form"
-    FILE = 'allfilm.html'
+    #URL = BASE_URL + "whats-on/?Date=All+Dates&Strand=&Country=&Venue=&SortOrder=0&PageSize=10000&Page=1#festival-filter-form"
+    URL = BASE_URL + f"/whats-on?max=54&page={ix}#page_part_54"
+    FILE = f"allfilm-{ix}.html"
 
     if not os.path.exists(FILE) or args.clean:
         log.debug("clean download")
@@ -41,96 +46,147 @@ def get_main_page():
 def go():
     log.debug("hello")
 
-    mainpage = get_main_page()
-    
-    soup = BeautifulSoup(mainpage.content, "html.parser")
-    film_links = soup.find_all("a", class_="learn")
-    
-    film_links = film_links[:]
-    for film_link in film_links:
-        url = BASE_URL + film_link["href"]
-        log.debug(url)
-        handle_film(url)
+    for ix in range(4):
+        log.info(f"DOING PAGE {ix}")
+        mainpage = get_main_page(ix+1)
+        
+        soup = BeautifulSoup(mainpage.content, "html.parser")
+        film_links = soup.find_all("a", class_="desc")
+        
+        film_links = film_links[:]
+        for film_link in film_links:
+            url = BASE_URL + film_link["href"]
+            log.debug(url)
+            handle_film(url)
 
+def skip_text(text):
+    if "also be available to view on Leeds Film Player" in text:
+        return True
+    if text == "Save with a LIFF 2022 Pass":
+        return True
+    return False
+    
 def handle_film(url):
     film_page = requests.get(url)
     page = BeautifulSoup(film_page.content, "html.parser")
-    section = page.find("section", class_="film-details")
-    title_span = section.find("span", class_="title")
+    
+    # sort the title out
+    section = page.find("div", class_="desc")
+    title_span = section.find("h1", class_="with-supertitle")
+    if not title_span:
+        title_span = section.find("h1")
+    
+    if not title_span:
+        log.error(f"{url} has no obvious title. Skipping")
+        return
     title = title_span.text
 
-    tag_list = section.find("div", class_="tag-list")
-    tags = tag_list.find_all("span", class_="tag")
-    
-    length_tag = None
-    for tag in tags:
-        if "minutes" in tag.text:
-            length_tag = tag
+    # get the running time
+    extra_info = page.find('div', class_="extraInfo")
+    if extra_info is None:
+        logging.error(f"{url} has no info. Skipping")
+        return
 
-    if length_tag is None:
-        logging.error(f"Failed to get length for film {title}")
+    run_time_match = re.search(r'(?:Running time|Runtime|runtime):\s([0-9]*) [Mm]inutes', extra_info.text)
+    run_time_match_loose = re.search(r'(?:Running time|Runtime|runtime):\s([0-9]*)', extra_info.text)
+    if run_time_match is None and run_time_match_loose is None:
+        logging.error(f"{url} Failed to get length for film {title}")
         minutes = 240 # Just make it mad long so I can spot it and fix it.
+    elif run_time_match is None and run_time_match_loose is not None:
+        minutes = int(run_time_match_loose.group(1))
+        logging.error(f"{url} has badly formatted duration. Reading as {minutes}")
     else:
-        length = length_tag.text
-        all_lengths.append(length)
-        length_parts = length.split(" ")
-        minutes = int(length_parts[0])
-
-    desc_section  =page.find("section", class_="main-content")
+        minutes = int(run_time_match.group(1))
+        
+    # get a description (not strictly necessary...)    
+    desc_section = page.find("div", class_="desc1")
     desc_ps = desc_section.find_all("p")
-
-    def skip_text(text):
-        if "also be available to view on Leeds Film Player" in text:
-            return True
-        if text == "Save with a LIFF 2022 Pass":
-            return True
-        return False
-
     descs = [p.text for p in desc_ps if not skip_text(p.text)]
     desc = "\n".join(descs)
     
-    book_section = page.find("section", class_="book-your-tickets")
+    book_section = page.find("ul", {"id" : re.compile('sub-show-list[0-9]*')})
 
-    if book_section is None:
-        logging.warning(f"Film {title} has no show times. Skipping")
+    if book_section is not None:
+        book_rows = book_section.find_all("li")
+        for book_row in book_rows:
+            # find the date and time
+            date_div = book_row.find("div", class_="date").find("div", class_="start")
+            time_div = book_row.find("div", class_="time").find("span", class_="start")
+            date_text = date_div.text.strip()
+            time_text = time_div.text.strip()
+            
+            # bash 'em together, then parse as one
+            parsed_date, parsed_end = build_date_range(minutes, date_text, time_text)
+
+            # Do Venues
+            venue = extract_venue(book_row)
+            
+            # Log it
+            log.debug(f'{title} [venue] {date_text} {time_text}')
+            
+            # And finally build our output
+            out_line = build_output(url, title, desc, parsed_date, parsed_end, venue)
+            log.debug(out_line)
+            output_file.write(out_line + "\n")
+        # we out.
         return
 
-    book_table = book_section.find("table")
-    book_table_body = book_table.find("tbody")
-    book_rows = book_table_body.find_all("tr")
-    for book_row in book_rows:
-        date_span = book_row.find("span", class_="date")
-        time_span = book_row.find("span", class_="time")
-        venue_span = book_row.find("span", class_="venue")
-        
-        date = date_span.text
-        time = time_span.text
-        venue = venue_span.text
+    # ok, try another way to get the same info
+    top_date = page.find("div", class_="top-date")
+    if top_date is not None:
+        date_text = top_date.find("span", class_="start").text.strip()
+        time_text = top_date.find("span", class_="time").text.strip()
+        time_text = time_text.splitlines()[1].strip()
+        parsed_date, parsed_end = build_date_range(minutes, date_text, time_text)
 
-        date_parts = date.split(" ")
-        day_part = date_parts[0]
-        day_part = "".join([x for x in day_part if not x.isalpha()])
-        date_parts[0] = day_part
-        date = " ".join(date_parts) + " " + time
-        
-        parsed_date = datetime.datetime.strptime(date, DATE_FORMAT_IN)
-        parsed_end = parsed_date + datetime.timedelta(minutes=minutes)
-        log.debug(f'{title} [{venue}] {date} {time}')
+        venue = extract_venue(page)
 
-        item = {}
-        item["start"] = parsed_date.strftime(DATE_FORMAT_OUT)
-        item["end"] = parsed_end.strftime(DATE_FORMAT_OUT)
-        item["stage"] = venue
-        item["act"] = title
-        item["type"] = "film"
-        item["url"] = url
-        item["blurb"] = desc
-        item_json = json.dumps(item)
-        out_line = f'act = {item_json}'
+        out_line = build_output(url, title, desc, parsed_date, parsed_end, venue)
         log.debug(out_line)
         output_file.write(out_line + "\n")
 
+        # and done
+        return
+    
+    # hmm. no idea.
+    logging.error(f"{url} Film {title} has no show times. Skipping")
 
+def build_date_range(minutes, date_text, time_text):
+    date = f"{date_text} 2024 {time_text}"
+    parsed_date = datetime.datetime.strptime(date, DATE_FORMAT_IN)
+    parsed_end = parsed_date + datetime.timedelta(minutes=minutes)
+    return parsed_date,parsed_end
+
+def build_output(url, title, desc, parsed_date, parsed_end, venue):
+    item = {}
+    item["start"] = parsed_date.strftime(DATE_FORMAT_OUT)
+    item["end"] = parsed_end.strftime(DATE_FORMAT_OUT)
+    item["stage"] = venue
+    item["act"] = title
+    item["type"] = "film"
+    item["url"] = url
+    item["blurb"] = desc
+    item_json = json.dumps(item)
+    out_line = f'act = {item_json}'
+    return out_line
+
+def extract_venue(book_row):
+    location_div = book_row.find("div", class_="location")
+    screen_div = book_row.find("div", class_="venue")
+    venue = f"{location_div.text.strip()} {screen_div.text.strip()}"
+
+    remap_venues = {
+        'Everyman Cinema Leeds, Leeds' : 'Everyman Cinema',
+        'Vue in the Light, Leeds Screen' : 'Vue in the Light, Screen',
+        'Hyde Park Picture House, Leeds Screen': 'Hyde Park Picture House, Screen',
+        'Cottage Road Cinema,  Leeds Screen 1': 'Cottage Road Cinema'
+    }
+
+    for key, value in remap_venues.items():
+        venue = venue.replace(key, value)
+
+    return venue
+    
 if __name__ == '__main__':
     if args.single:
         handle_film(args.single)
