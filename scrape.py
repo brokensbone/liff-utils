@@ -19,7 +19,7 @@ args = parser.parse_args()
 
 logging.basicConfig()
 log = logging.getLogger()
-log.setLevel("DEBUG")
+log.setLevel("INFO")
 
 err_handler = logging.FileHandler("errors.log")
 err_handler.setLevel(logging.ERROR)
@@ -61,9 +61,10 @@ def go():
         film_links = soup.find_all("a", class_="desc")
 
         film_links = film_links[:]
-        for film_link in film_links:
+        for ix, film_link in enumerate(film_links):
             url = BASE_URL + film_link["href"]
-            log.debug(url)
+            # log.debug(url)
+            log.info(f"{ix} {url}")
             handle_film(url, cx)
 
 
@@ -79,7 +80,7 @@ def retrieve_film(db: sqlite3.Connection, url: str, backoff: int = 1):
     c = db.cursor()
     c.execute("SELECT html FROM cache WHERE url = ?", (url,))
     row = c.fetchone()
-    if row:
+    if row and not args.clean:
         log.info(f"{url} from cache")
         c.close()
         return row[0]
@@ -126,7 +127,6 @@ def handle_film(url: str, cx: sqlite3.Connection):
         logging.error(f"{url} has no info. Skipping")
         return
 
-    log.info(f"DEBUG EXTRAINFO {extra_info.text}")
     run_time_match = re.search(
         r"(?:Running time|Runtime|runtime):*\s([0-9]*) (?:[Mm]inutes|[Mm]ins)",
         extra_info.text,
@@ -171,7 +171,7 @@ def handle_film(url: str, cx: sqlite3.Connection):
 
             # And finally build our output
             out_line = build_output(url, title, desc, parsed_date, parsed_end, venue)
-            log.debug(out_line)
+            # log.debug(out_line)
             output_file.write(out_line + "\n")
         # we out.
         return
@@ -187,7 +187,8 @@ def handle_film(url: str, cx: sqlite3.Connection):
         venue = extract_venue(page)
 
         out_line = build_output(url, title, desc, parsed_date, parsed_end, venue)
-        log.debug(out_line)
+        # log.debug(out_line)
+        log.debug(f"{title} [venue] {date_text} {time_text}")
         output_file.write(out_line + "\n")
 
         # and done
