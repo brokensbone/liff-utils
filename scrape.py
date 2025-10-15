@@ -124,24 +124,24 @@ def handle_film(url: str, cx: sqlite3.Connection):
     # get the running time
     extra_info = page.find("div", class_="extraInfo")
     if extra_info is None:
-        logging.error(f"{url} has no info. Skipping")
-        return
-
-    run_time_match = re.search(
-        r"(?:Running time|Runtime|runtime):*\s([0-9]*) (?:[Mm]inutes|[Mm]ins)",
-        extra_info.text,
-    )
-    run_time_match_loose = re.search(
-        r"(?:Running time|Runtime|runtime):*\s([0-9]*)", extra_info.text
-    )
-    if run_time_match is None and run_time_match_loose is None:
-        logging.error(f"{url} Failed to get length for film {title}")
-        minutes = 240  # Just make it mad long so I can spot it and fix it.
-    elif run_time_match is None and run_time_match_loose is not None:
-        minutes = int(run_time_match_loose.group(1))
-        logging.error(f"{url} has badly formatted duration. Reading as {minutes}")
+        logging.warning(f"{url} has no info. Setting duration to 0")
+        minutes = 0
     else:
-        minutes = int(run_time_match.group(1))
+        run_time_match = re.search(
+            r"(?:Running time|Runtime|runtime):*\s([0-9]*) (?:[Mm]inutes|[Mm]ins)",
+            extra_info.text,
+        )
+        run_time_match_loose = re.search(
+            r"(?:Running time|Runtime|runtime):*\s([0-9]*)", extra_info.text
+        )
+        if run_time_match is None and run_time_match_loose is None:
+            logging.error(f"{url} Failed to get length for film {title}")
+            minutes = 240  # Just make it mad long so I can spot it and fix it.
+        elif run_time_match is None and run_time_match_loose is not None:
+            minutes = int(run_time_match_loose.group(1))
+            logging.error(f"{url} has badly formatted duration. Reading as {minutes}")
+        else:
+            minutes = int(run_time_match.group(1))
 
     # get a description (not strictly necessary...)
     desc_section = page.find("div", class_="desc1")
@@ -184,7 +184,17 @@ def handle_film(url: str, cx: sqlite3.Connection):
         time_text = time_text.splitlines()[1].strip()
         parsed_date, parsed_end = build_date_range(minutes, date_text, time_text)
 
-        venue = extract_venue(page)
+        location_div = page.find("div", class_="location")
+        screen_div = page.find("div", class_="venue")
+
+        if location_div and screen_div:
+            venue = f"{location_div.text.strip()} {screen_div.text.strip()}"
+        elif screen_div:
+            venue = screen_div.text.strip()
+        else:
+            logging.warning(f"Could not find venue for {title}")
+            venue = "Unknown"
+        venue = remap_venue(venue)
 
         out_line = build_output(url, title, desc, parsed_date, parsed_end, venue)
         # log.debug(out_line)
@@ -219,11 +229,14 @@ def build_output(url, title, desc, parsed_date, parsed_end, venue):
     return out_line
 
 
-def extract_venue(book_row):
+def extract_venue(book_row) -> str:
     location_div = book_row.find("div", class_="location")
     screen_div = book_row.find("div", class_="venue")
     venue = f"{location_div.text.strip()} {screen_div.text.strip()}"
+    return remap_venue(venue)
 
+
+def remap_venue(venue: str) -> str:
     remap_venues = {
         "Everyman Cinema Leeds, Leeds": "Everyman Cinema",
         "Vue in the Light, Leeds Screen": "Vue in the Light, Screen",
