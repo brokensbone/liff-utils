@@ -1,3 +1,6 @@
 env
 allfilm.html
 catalog
+__pycache__
+errors.log
+html.db
