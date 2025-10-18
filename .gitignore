@@ -4,3 +4,4 @@ catalog
 __pycache__
 errors.log
 html.db
+ticket-split/out

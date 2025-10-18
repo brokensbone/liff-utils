@@ -8,7 +8,16 @@ import json
 import itertools
 import glob
 
-logging.basicConfig(level=logging.DEBUG)
+import sys
+
+import unicodedata
+
+def strip_diacritics(text):
+    """Removes diacritics from a string."""
+    return ''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn')
+
+
+logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
 
 DIRECTORY = "./ticket-split/in"
 SCHEDULES = "./ticket-split/schedules"
@@ -55,24 +64,30 @@ def parse_film_details(page_text):
     return film_name, film_place, film_date, film_time
 
 
+import sys
+
 def find_owner(schedules, film_name, film_place, film_date, film_time):
     """Finds the owner of a film based on the schedules and removes the event."""
+    logging.debug(f"Searching for: {film_name} @ {film_date.strftime('%Y-%m-%d')} {film_time.strftime('%H:%M')}")
     for owner, schedule in schedules.items():
         for location in schedule.get("locations", []):
             for event in location.get("events", []):
                 event_name = event.get("name", "").strip().lower()
                 event_start_str = event.get("start", "")
-                if event_name == film_name.strip().lower():
+                logging.debug(f"  Checking against: {event_name} @ {event_start_str} for {owner}")
+                if strip_diacritics(film_name.strip().lower()) in strip_diacritics(event_name):
                     try:
                         event_start = datetime.datetime.fromisoformat(event_start_str)
                         if (
                             event_start.date() == film_date.date()
                             and event_start.time() == film_time
                         ):
+                            logging.info(f"Found match for {film_name} for {owner}")
                             location["events"].remove(event)
                             return owner, schedules
                     except ValueError:
                         continue
+    logging.warning(f"No match found for {film_name}")
     return "unknown", schedules
 
 
@@ -205,13 +220,43 @@ def process_pdfs(in_dir, out_dir, schedules):
 def write_unclaimed_tickets(out_dir, unclaimed_tickets):
 
 
+
+
+
     """Writes unclaimed tickets to the unknown folder."""
+
+
+
+
+
+    if not unclaimed_tickets:
+
+
+
+
+
+        return
+
+
+
+
+
+
+
+
+
 
 
     unknown_dir = os.path.join(out_dir, "unknown")
 
 
+
+
+
     if not os.path.exists(unknown_dir):
+
+
+
 
 
         os.makedirs(unknown_dir)
@@ -220,25 +265,52 @@ def write_unclaimed_tickets(out_dir, unclaimed_tickets):
 
 
 
+
+
+
+
+
+
     for i, (page, film_name, film_date, film_time) in enumerate(unclaimed_tickets):
+
+
+
 
 
         if film_date and film_time and film_name:
 
 
+
+
+
             date_str = film_date.strftime("%Y%m%d")
+
+
+
 
 
             time_str = film_time.strftime("%H%M")
 
 
+
+
+
             safe_title = "".join(c for c in film_name if c.isalnum() or c in " -_").rstrip()
+
+
+
 
 
             out_fname = f"{date_str}-{time_str}-{safe_title}.pdf"
 
 
+
+
+
         else:
+
+
+
 
 
             out_fname = f"unclaimed_{i+1}.pdf"
@@ -247,19 +319,40 @@ def write_unclaimed_tickets(out_dir, unclaimed_tickets):
 
 
 
+
+
+
+
+
+
         out_fpath = os.path.join(unknown_dir, out_fname)
+
+
+
 
 
         writer = pypdf.PdfWriter()
 
 
+
+
+
         writer.add_page(page)
+
+
+
 
 
         with open(out_fpath, "wb") as out_f:
 
 
+
+
+
             writer.write(out_f)
+
+
+
 
 
         logging.info(f"Wrote {out_fpath}")
