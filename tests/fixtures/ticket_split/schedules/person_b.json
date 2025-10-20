@@ -1,0 +1,215 @@
+{
+	"copyright":"Licensed under a Creative Commons Attribution-NonCommercial 3.0 License https://creativecommons.org/licenses/by-nc/3.0/. Free for non-commercial use. Contact halvin@clashfinder.com for other uses.",
+	"modified":"2025-10-15 20:02",
+	"name":"Leeds International Film Festival (LIFF) 2025",
+	"id":"liff25",
+	"url":"https://clashfinder.com/s/liff25/",
+	"printAdvisory":5,
+	"timezone":"Europe/London",
+	"tzOffset":0,
+	"tzNote":"Start and end times are given in the timezone of the event. Offset by -tzOffset for UTC.",
+	"userID":"person_b",
+	"auth":{"result":"pass","authUsername":"person_b"},
+	"gets":{
+		"hl-name1":"Big Yes",
+		"hl-name2":"Strong Maybe",
+		"hl-name3":"Blocked",
+		"hl-name4":"BOOK IT",
+		"hl-col3":"ffadba",
+		"hl-col4":"ffe680",
+		"hl1":["game(1)","holida(1)(2)"],
+		"hl2":["byebye(1)(2)","choral(1)","cinema(1)","curren(1)(2)(3)","diemyl(1)(2)(3)","fcktoy(1)(2)","ghoste(1)(2)(3)","greenr(1)(2)","happyb(1)(2)(3)","holybo(1)(2)","honeyb(1)(2)","ifihad(1)(2)(3)","insymb(1)(2)","iracem(1)(2)","isthis(1)(2)","little1(1)(2)","loveth(1)(2)(3)","middle(1)(2)","mirror(1)(2)","omaha(1)(2)(3)","outofl(1)(2)","pinch(1)(2)(3)","queens(1)(2)","sentim(1)(2)(3)","spacec(1)(2)(3)","summer(1)"],
+		"hl3":["alpha(2)","apriva(1)(3)","ausefu(1)(2)","blackh(2)","bluetr(2)(3)(4)","bugoni(2)(3)(4)","byebye(1)(2)","callem(1)(3)","celtic(1)","curren(2)(3)","deadlo(2)","diemyl(1)(3)","dogofg(2)","dreams(1)(3)","fcktoy(1)","follie(2)(3)","ghoste(1)(3)","greenr(1)(2)","happyb(2)(3)","holida(2)","holybo(2)","ifihad(3)","insymb(2)","iracem(1)","itwasj(2)(3)","little1(1)","middle(1)","mirror(1)","myster(2)","omaha(3)","outofl(1)","pinch(2)(3)","queens(1)","rental(2)","secret(1)(3)","sentim(2)(3)","sirt(1)(2)","summer(1)","virgin(2)(3)","wanda(2)"],
+		"hl4":["alpha(1)","anythi(1)","apriva(2)","ausefu(3)","blackh(1)","bluetr(1)","bugoni(1)","callem(2)","celtic(2)","curren(1)","deadlo(1)","diemyl(2)","dogofg(1)","dreams(2)","follie(1)","game(1)","ghoste(2)","holybo(1)","insymb(1)","iracem(2)","itwasj(1)","little1(2)","loveth(1)","myster(1)","omaha(1)","ourhea(1)","queens(2)","rental(1)","secret(2)","sentim(1)","sirt(3)","virgin(1)","wanda(1)","worlda(2)","worlda1(2)"],
+		"hl5":"edsalkeld(4)",
+		"hl-name5":"Eddo GO",
+		"hl-col5":"aefef9",
+		"hls":"4"
+	},
+	"locations":[
+		{
+			"name":"Vue in the Light, Screen 7",
+			"events":[
+				{"name":"Dead Lover","short":"deadlo(1)","start":"2025-10-31 20:45","end":"2025-10-31 22:20","hls":"4 5","blurb":"Shot on 16mm, this delightfully strange love story follows a lonely gravedigger who tries to resurrect the love of her life. 
+The blossoming love between a gravedigger (who smells like corpses) and a poet is cut short by a tragic accident. Grief-stricken and in possession of his severed finger, she uses her knowledge of dead bodies to try to bring him back in a highly inventive tale inspired by Frankenstein. Written by and starring Grace Glowicki and Ben Petrie (also in LIFF2025 film Honey Bunch).
+Contains some bloody gore and references to death, grief and mental health. ","url":"https://www.leedsfilm.com/whats-on/dead-lover-qz2t"},
+				{"name":"Dreams","short":"dreams(2)","start":"2025-11-01 18:30","end":"2025-11-01 20:05","hls":"4 5","blurb":"Uncompromising Mexican director Michel Franco reunites with actress Jessica Chastain, whose cold precision powers an erotically charged political drama with a vicious sting in its tail. 
+Chastain stars as rich philanthropist Jennifer opposite Isaac Hernández, who plays her lover, a young Mexican ballet dancer Fernando who dreams of international recognition and a life in the US. Believing she will support him, he leaves everything behind but his arrival disrupts her carefully curated world.
+
+Contains themes of sexual violence.","url":"https://www.leedsfilm.com/whats-on/dreams-l6wg"},
+				{"name":"Rental Family","short":"rental(1)","start":"2025-11-01 20:30","end":"2025-11-01 22:13","hls":"4 5","blurb":"Hikari’s Rental Family is a poignant comedy drama starring Oscar-winner Brendan Fraser as an American actor in Tokyo whose life is changed when he is cast for an unusual role. 
+Philip (Fraser) has lived in Japan for seven years with little acting success until he’s recruited to play “sad American” at an actual funeral and is offered more stand-in roles working for a Japanese ‘rental family’ agency. As he immerses himself in his clients' worlds, he begins to form genuine bonds that blur the lines between performance and reality.
+","url":"https://www.leedsfilm.com/whats-on/rental-family-5y1n"},
+				{"name":"The Black Hole","short":"blackh(1)","start":"2025-11-05 13:15","end":"2025-11-05 15:10","hls":"4 5","blurb":"Otherworldly creatures disrupt the lives of the residents of an apartment block in this delightful Estonian sci-fi triptych.
+Aliens, giant spiders, and the malice of men unleash on a quiet neighbourhood when a black hole opens up nearby. Moonika Siimets explores the depths of humanity in this genre-bending deadpan sci-fi comedy, and manages to shine a light on the struggles of modern society - for women and the working class in particular - with humour, tenderness and a charming melancholy.
+
+Contains scenes of domestic violence.","url":"https://www.leedsfilm.com/whats-on/the-black-hole-5lfn"},
+				{"name":"The Virgin of the Quarry Lake","short":"virgin(1)","start":"2025-11-06 15:30","end":"2025-11-06 17:03","hls":"4 5","blurb":"A young girl’s first love awakens something darker within her when another woman gets in her way.
+Diego has been teasing something of a romance with Natalia for a little while, but when he begins to see an older woman, Natalia refuses to sit back in silence. Quiet on the surface, much like its main character, The Virgin of the Quarry Lake is a captivating supernatural coming-of-age film that explores the depths of hormonal frustration, somewhere between The Virgin Suicides and The Craft.
+
+Contains scenes of strong violence and sex.","url":"https://www.leedsfilm.com/whats-on/the-virgin-of-the-quarry-lake-1p1r"},
+				{"name":"Dog of God","short":"dogofg(1)","start":"2025-11-08 12:30","end":"2025-11-08 14:02","hls":"4 5","blurb":"This surreal, graphic and beautifully twisted rotoscope animation explores witchcraft, werewolves and corruption in 17th-century Europe. 
+When a small village consumed by religious fervour puts a woman on trial for witchcraft, the proceedings are disrupted by a stranger who claims to be a werewolf. As his influence spreads, fear turns to desire and the villagers descend into carnality and chaos. Inspired by folklore and real events, this striking, sexualised vision is unforgettable and unique.
+
+Contains frequent animated nudity and depictions of sex. Brief sexual activity with an animal. Contains scenes of sexism. ","url":"https://www.leedsfilm.com/whats-on/dog-of-god-1phr"},
+				{"name":"The Holy Boy","short":"holybo(1)","start":"2025-11-08 14:45","end":"2025-11-08 16:47","hls":"2 4","blurb":"Something sinister lies beneath the picture-perfect aura of a small community in this Italian horror thriller.
+Trying to run away from grief, a PE teacher takes a job in a gorgeous mountain village where everyone seems to get along. But it isn’t long before he uncovers the town’s strange rituals and their dire consequences on one particular teenager. The Holy Boy is a thought-provoking exploration of collective trauma and displaced grief from Paolo Strippoli.
+
+Content scenes of graphic violence.","url":"https://www.leedsfilm.com/whats-on/the-holy-boy-fhzq"},
+				{"name":"Ghost Elephants","short":"ghoste(2)","start":"2025-11-14 20:30","end":"2025-11-14 22:08","hls":"2 4 5","blurb":"Werner Herzog returns with Ghost Elephants, an enthralling journey into the misty Angolan highlands. 
+Joining eccentric conservationist Dr Steve Boyes and master Namibian trackers, Herzog searches for a mythical herd of giant elephants, colossal creatures that exist between science and legend. With dazzling cinematography and Herzog’s singular narration, the film becomes a poetic meditation on obsession, vanishing cultures, and the enduring mysteries of nature.","url":"https://www.leedsfilm.com/whats-on/ghost-elephants-d2g9"},
+				{"name":"A Useful Ghost","short":"ausefu(3)","start":"2025-11-15 20:15","end":"2025-11-15 22:25","hls":"4 5","blurb":"Visually striking, haunting and sharply funny, A Useful Ghost is a wildly inventive tale and unlike anything you’ll see this year. 
+Director Ratchapoom Boonbunchachoke plays with form and tone in a bold and genre-defying debut that won the top prize at this year’s Cannes Critics’ Week. When Nat unexpectedly returns from the dead as a vacuum cleaner, she tries to reconnect with her husband, to the dismay of her in-laws. Beneath its surreal premise, the film explores Thai history, grief, and usefulness.
+
+Contains scenes of nudity, violence, and death.","url":"https://www.leedsfilm.com/whats-on/a-useful-ghost-x8v6"},
+				{"name":"Little Forest","short":"little1(2)","start":"2025-11-16 12:15","end":"2025-11-16 13:58","hls":"2 4 5","blurb":"With its sumptuous cooking sequences and tender reflections, Little Forest is a heartfelt ode to food, friendship, and the restorative pleasures of slowing down. 
+In Yim Soon-rye’s gentle, nourishing drama, Hye-won (Kim Tae-ri - The Handmaiden) leaves behind the pressures of Seoul to return to her rural childhood home. As she tends the land, rekindles old friendships, and prepares seasonal meals of exquisite simplicity, she begins to heal from past wounds and rediscover her sense of self.
+","url":"https://www.leedsfilm.com/whats-on/little-forest-9lj5"}
+			]
+		},
+		{
+			"name":"Hyde Park Picture House, Screen 1",
+			"events":[
+				{"name":"It Was Just an Accident","short":"itwasj(1)","start":"2025-11-02 15:45","end":"2025-11-02 17:30","hls":"4 5","blurb":"Winner of the Palme d’Or at this year’s Cannes, Jafar Panahi’s It Was Just an Accident is a bold, darkly satirical thriller that confronts the violence of Iran’s repressive regime head-on.
+A minor traffic collision sparks a tense reunion between two men with a shared, traumatic past — one a victim, the other possibly his former torturer. What begins as an almost absurd road trip escalates into a gripping moral reckoning on justice, revenge, and the possibility of mercy.
+
+Contains scenes of graphic violence or injury and tortures, and themes of bereavement and death.","url":"https://www.leedsfilm.com/whats-on/it-was-just-an-accident-8w6s"},
+				{"name":"Die, My Love","short":"diemyl(2)","start":"2025-11-03 20:30","end":"2025-11-03 22:28","hls":"2 4 5","blurb":"Jennifer Lawrence and Robert Pattinson star in Lynne Ramsay’s striking drama about a woman’s descent into psychosis. 
+Grace and Jackson leave New York for the country with their baby, seeking space for Grace to write. But something has changed in her since the birth, which has unleashed primal urges and threatens her grip on reality. Lawrence is stunning as a wife driven to the edge, in a sharp screenplay by Ramsay, Enda Walsh and Alice Birch about the collapse of a relationship post-childbirth.
+
+Contains themes of self harm and suicide.","url":"https://www.leedsfilm.com/whats-on/die-my-love-z9w4"},
+				{"name":"Anything That Moves","short":"anythi(1)","start":"2025-11-08 18:30","end":"2025-11-08 19:50","hls":"4 5","blurb":"A food courier who offers sex services on the side becomes entangled in a string of grisly murders in this surreal, psychedelic horror-thriller. 
+Cycling through the streets of Chicago with his business-partner girlfriend, Liam delivers food and illicit sexual encounters to his eager clients, until they start turning up gruesomely murdered. Shot on 16mm, Anything That Moves channels sordid 70s exploitation films and giallo horror, creating a fever-dream film experience which is often as funny as it is graphic.
+Contains scenes with graphic violence, strong sexualised nudity and sex and threats of sexual violence. ","url":"https://www.leedsfilm.com/whats-on/anything-that-moves-nlnf"},
+				{"name":"The Secret Agent","short":"secret(2)","start":"2025-11-11 20:00","end":"2025-11-11 22:38","hls":"4","blurb":"Brazilian Director Kleber Mendonça Filho hits dizzying new heights with The Secret Agent, a complex and riveting political thriller set in the paranoid 1970s with unexpected streaks of absurdist black humour and bags of style. 
+Wagner Moura plays a university professor who travels from São Paulo to the seaside city of Recife during Carnival week, hoping to reunite with his son. He finds out he’s being tailed by hitmen hired by a corrupt federal officer. One of the best films of the year.
+
+
+Contains scenes of graphic violence or injury. ","url":"https://www.leedsfilm.com/whats-on/the-secret-agent-13gr"},
+				{"name":"Game","short":"game(1)","start":"2025-11-13 18:00","end":"2025-11-13 19:22","hls":"1 4","blurb":"Written and produced by Portishead co-founder Geoff Barrow, Game is a gripping and unpredictable thriller set in the 90s rave scene. 
+Marc Bessant plays an ageing raver who steals a stash at his final party but ends up in a car crash. Trapped and struggling for survival, he encounters a menacing poacher played by Jason Williamson (vocalist from Sleaford Mods). Director John Minton hones a tense and hallucinatory film taking the viewer way beyond the expectations of thriller conventions.
+Contains scenes of drug use and injury detail.","url":"https://www.leedsfilm.com/whats-on/game-4553"},
+				{"name":"Queens of the Dead","short":"queens(2)","start":"2025-11-15 16:00","end":"2025-11-15 17:39","hls":"2 4 5","blurb":"The Night of the Dead headline film and Fanomenon closing film is Tina Romeo’s outrageous horror-comedy about a zombie apocalypse during a queer warehouse party in Brooklyn. 
+Drag queens, club kids, 'token straights' and frenemies have to battle the undead battling both the undead and their own personal conflicts. Featuring queer icons Nina West, Dominique Jackson, Margaret Cho and Cheyenne Jackson, this gloriously trashy yet heartfelt romp honours the Romero family tradition.
+The screening on Friday 14 November is part of the all-night horror marathon Night of the Dead, which is only available with an all-night ticket. Individual tickets are available for the screening on Saturday 15 November.
+Contains flashing lights and imagery.  
+","url":"https://www.leedsfilm.com/whats-on/queens-of-the-dead-8vds"},
+				{"name":"The Love That Remains","short":"loveth(1)","start":"2025-11-16 18:00","end":"2025-11-16 19:49","hls":"2 4 5","blurb":"Icelandic director Hlynur Pálmason’s follow-up to Godland is a tender and playful portrait of a family in flux, shot on luminous 35mm.
+Across a year in rural Iceland, artist Anna and fisherman Magnús navigate marital separation while co-parenting their three children (played by Pálmason’s own). Pálmason delicately captures the changing seasons and shifting family dynamics with warmth, humour and touches of absurdity, crafting an intimate meditation on love, nature, and unconventional families.
+","url":"https://www.leedsfilm.com/whats-on/the-love-that-remains-thxc"}
+			]
+		},
+		{
+			"name":"Vue in the Light, Screen 12",
+			"events":[
+				{"name":"Bugonia","short":"bugoni(1)","start":"2025-10-30 20:30","end":"2025-10-30 22:30","hls":"4","blurb":"The latest, much-anticipated collaboration between Yorgos Lanthimos and Emma Stone after Poor Things and Kinds of Kindness, Bugonia is a remake of cult Korean sci-fi comedy Save the Green Planet (2003). 
+An obsessive conspiracy theorist (Jesse Plemons) and his cousin (Aidan Delbis) kidnap the high-powered CEO of a major pharma company (Emma Stone). They are convinced that she is part of an alien species involved in conducting experiments on humans and is intent on destroying Earth.
+Contains flashing lights and imagery.  
+
+Contains strong violence, injury detail, suicide, very strong language.","url":"https://www.leedsfilm.com/whats-on/bugonia-fh1q"},
+				{"name":"A Private Life","short":"apriva(2)","start":"2025-11-03 13:00","end":"2025-11-03 14:43","hls":"4 5","blurb":"Jodie Foster shines in her first French-speaking lead role in Rebecca Zlotowski’s playful murder mystery.
+Foster stars as Lilian Steiner, an American psychoanalyst in Paris whose life is upended after the sudden death of a long-standing patient. Convinced it was murder, Lilian throws herself into some amateur sleuthing, with her ex-husband (Daniel Auteuil) in tow. An elegant, unpredictable thriller laced with dark humour and Hitchcockian flair, A Private Life is a hugely entertaining delight.
+
+Contains themes of suicide. ","url":"https://www.leedsfilm.com/whats-on/a-private-life-z5k4"},
+				{"name":"Alpha","short":"alpha(1)","start":"2025-11-03 15:15","end":"2025-11-03 17:23","hls":"4 5","blurb":"Julia Ducournau follows her award-winning Titane with this genre-bending family drama. 
+Young Alpha returns home with a freshly branded tattoo made with a dirty needle, much to her mother’s panic. At the same time, her mysterious uncle returns and a virus spreads through the population, turning people into stone before crumbling to dust. A coming-of-age story cleverly blended with genre elements, Alpha is a more tender film from Ducournau, but one that’s as provocative as you’d expect.
+Contains flashing lights and imagery.  
+
+Contains scenes of drug use, graphic violence or injury, and homophobic attitudes and language.","url":"https://www.leedsfilm.com/whats-on/alpha-13cr"},
+				{"name":"Omaha","short":"omaha(1)","start":"2025-11-04 16:15","end":"2025-11-04 17:38","hls":"2 4","blurb":"Two young siblings are taken on a mysterious cross-country journey in this performance-driven debut starring John Magaro (First Cow, Past Lives). 
+Awoken by their dad and bustled into their car, Ella and Charlie discover an America they’ve never known. As their road trip unfolds, Ella grows suspicious of her father’s secrecy. Omaha embraces stripped-down intimacy, thriving on an incredible performance by Magaro, debuts from Molly Belle Wright and Wyatt Solis and a quietly impactful screenplay.
+
+Contains upsetting scenes of child abandonment. ","url":"https://www.leedsfilm.com/whats-on/omaha-skr2"},
+				{"name":"The Mysterious Gaze of the Flamingo","short":"myster(1)","start":"2025-11-04 20:15","end":"2025-11-04 21:59","hls":"4","blurb":"An unknown disease spreads fear through a 1980s desert town, in this Cannes Un Certain Regard winner.
+Teenage Lidia lives happily with her large queer family at Mama Boa’s cabaret, but their haven shatters when rumours spread that the illness transmits through two men by a simple glance of love. As accusations mount, Lidia must uncover the truth to protect them from the town. Part modern Western, part Almodóvar-inspired melodrama, Diego Céspedes’ striking debut marks a director to watch. 
+
+Contains themes of homophobia and transphobia, scenes of domestic violence.","url":"https://www.leedsfilm.com/whats-on/the-mysterious-gaze-of-the-flamingo-yxrl"},
+				{"name":"The Currents","short":"curren(1)","start":"2025-11-05 18:30","end":"2025-11-05 20:14","hls":"2 4","blurb":"A mesmerising psychological drama from acclaimed Argentine filmmaker Milagros Mumenthaler.
+After accepting an award in Switzerland, fashion designer Lina impulsively jumps from a bridge into icy waters. On her return to Buenos Aires, something inside her has shifted, and she struggles to resume daily life with her husband and young daughter. Isabel Aimé González-Sola gives an outstanding performance as Lina in this singular and deeply resonant exploration of mental health, trauma and motherhood. 
+","url":"https://www.leedsfilm.com/whats-on/the-currents-r3s7"},
+				{"name":"Follies","short":"follie(1)","start":"2025-11-06 10:45","end":"2025-11-06 12:26","hls":"4","blurb":"Eric K. Boulianne’s directorial debut, Follies, is a frank and funny exploration of modern love, sex, and intimacy.
+After 16 years of marriage and two kids, François and Julie decide to open up their relationship, diving into swingers’ apps, awkward encounters, and new desires. Boulianne and co-star Catherine Chabot deliver a sharp, sex-positive comedy that balances farce with warmth, offering a witty, relatable reflection on the complexities of contemporary relationships.
+
+Contains sexually explicit scenes.","url":"https://www.leedsfilm.com/whats-on/follies-9285"},
+				{"name":"Sentimental Value","short":"sentim(1)","start":"2025-11-06 18:00","end":"2025-11-06 20:13","hls":"2 4","blurb":"After The Worst Person in the World, Renate Reinsve reunites with Joachim Trier in his latest Cannes-winning film, also starring Elle Fanning and Stellan Skarsgård.
+Nora and Agnes confront old wounds when their director father, Gustav, returns to the family home to shoot a film based on their lives. With actress Nora refusing to take part, Gustav turns his attention to moulding a young American star (Fanning) into his daughter’s role. A masterfully skilled drama featuring Trier’s distinctive humour about grief and the healing power of art.
+
+Contains themes and recreations of suicide.","url":"https://www.leedsfilm.com/whats-on/sentimental-value-qhyt"},
+				{
+					"name":"Sirāt",
+					"short":"sirt(3)",
+					"start":"2025-11-07 20:15",
+					"end":"2025-11-07 22:10",
+					"hls":"4",
+					"blurb":"Winner of the Cannes Jury Prize, Oliver Laxe’s Sirāt is a hallucinatory odyssey that demands to be experienced on the big screen.
+A father (Sergi López) and his young son scour the Moroccan desert, searching for a daughter lost to the rave scene. Along the way, they join a nomadic community of ravers and are swept into a world of pounding techno, dust storms, and looming conflict. Shot on Super 16mm and with a thunderous score, this apocalyptic road trip is raw and unforgettable cinema.[Please note that there is now an additional screening of Sirāt on 31 October.]
+
+Contains scenes with drug use and graphic violence.",
+					"url":"https://www.leedsfilm.com/whats-on/sirat-t4bc"
+				},
+				{"name":"Calle Málaga","short":"callem(2)","start":"2025-11-12 18:00","end":"2025-11-12 19:56","hls":"4 5","blurb":"Director Maryam Touzani (Blue Caftan) returns with an endearing, big hearted drama boasting a towering performance from Carmen Maura. 
+Maria Angeles is a 79-year-old Spanish woman who lives alone in Tangier, Morocco, and loves her hometown, the warm people and labyrinthine markets. However, her life is turned upside down when her daughter arrives from Madrid to sell the apartment where she’s always lived. Determined to stay, she digs in her heels and, unexpectedly, rediscovers love and sensuality.
+
+","url":"https://www.leedsfilm.com/whats-on/calle-malaga-529n"}
+			]
+		},
+		{
+			"name":"Everyman Cinema Screen 4",
+			"events":[
+				{
+					"name":"The Blue Trail",
+					"short":"bluetr(1)",
+					"start":"2025-11-01 13:15",
+					"end":"2025-11-01 14:40",
+					"hls":"4 5",
+					"blurb":"Gabriel Mascaro’s The Blue Trail is an entrancing, inspiring and visually lush film odyssey and a striking critique of ageism and authoritarianism.
+In a near-future Brazil, the government gives priority to the country’s younger generations, while older people are put away in colonies so they will not “get in the way”. The 77-year-old Tereza (Denise Weinberg) refuses to submit and decides to escape, embarking on a transformative journey through the Amazon to fulfil one last wish before she loses her freedom.
+[Please note that there is now an additional screening of  The Blue Trail on 4 November.]  
+
+Contains scenes of graphic violence or injury, and nudity.",
+					"url":"https://www.leedsfilm.com/whats-on/the-blue-trail-nj9f"
+				},
+				{"name":"In Symbiosis","short":"insymb(1)","start":"2025-11-01 15:15","end":"2025-11-01 17:18","hls":"2 4 5","blurb":"A vital and informative new documentary which sets out to create a deeper understanding of the current state of our food system. 
+In Symbiosis systematically tracks how food is produced and distributed and is full of eye opening testimony from perceptive scientists, writers and activists. The film reveals how globalised industrial farming accelerates environmental degradation in response to consumer demand. It also reveals a drive for change and shows a path to sustainability and resilience.
+","url":"https://www.leedsfilm.com/whats-on/in-symbiosis-8kbs"},
+				{"name":"Iracema (New 4K Restoration)","short":"iracem(2)","start":"2025-11-02 11:00","end":"2025-11-02 12:31","hls":"2 4 5","blurb":"Iracema is an atmospheric Brazilian road movie and a savage critique of the political hypocrisies of its time. 
+It’s shot in guerilla style in a national security zone soon after the construction of the environmentally ruinous Trans-Amazonian Highway. Indigenous teenager Iracema leaves her family and falls into work as a prostitute. She meets Tião Brasil Grande, an unscrupulous truck driver and apologist for the Brazilian economic miracle, an unfortunate companion for a heartrending odyssey.
+","url":"https://www.leedsfilm.com/whats-on/iracema-new-4k-restoration-1wzr"},
+				{"name":"World Animation Competition 1","short":"worlda(2)","start":"2025-11-09 11:30","end":"2025-11-09 13:00","hls":"4 5","blurb":"We love animation at LIFF and we have a whole competition dedicated to short animated wonders. This first programme includes animations from Poland, Portugal, Egypt, Germany, Finland, Ecuador, Palestine, Switzerland, Estonia, Bulgaria, and Ireland.
+ 
+A mother and daughter connect over a Zoom call, where intergenerational perceptions of technology bring family conflicts and age-old bonds to light. With their thinking reflected on screens, can a digital space transform distance into a new kind of intimacy?England Premiere | Anastazja Naumenko | Poland | 2025 | 15 mins | Russian
+Welcome to the dreamy nighttime world of apes. Unable to sleep, a man explores the hidden depths of his apartment block. With hints of comedy and the absurd, here lies a surreal landscape where those seeking connection escape from an ever-isolating reality.UK Premiere | Alexandre Sousa | Portugal, Hungary | 2025 | 12 mins | English
+Through recalling personal memories of his childhood, a man explores his connection to his hair and how it has shaped his close relationships and wider life experience. Amusing and endearing in equal measure with a simple and effective visual style.Yorkshire Premiere | Sameh Alaa | France, Egypt | 2025 | 10 mins | Arabic
+How do we warm ourselves up in cold times? One man ashamedly thinks a microwavable Hawaiian toastie is the answer. Detlev probes us to consider how we find solace in familiar routines. But what if that sought comfort was just on the other side of the glass?Yorkshire Premiere | Ferdinand Ehrhardt | Germany | 2024 | 13 mins | English
+Weight-lifters, lovers, and fish dinners all vie for space in an apartment block. Dollhouse Elephant examines the tensions that arise when we attempt to live authentically. How we share space and adapt to ways of living are key themes in this vibrant short.England Premiere | Jenny J... [truncated]","url":""},
+				{"name":"World Animation Competition 2","short":"worlda1(2)","start":"2025-11-09 13:45","end":"2025-11-09 15:15","hls":"4 5","blurb":"The second programme in our competition dedicated to short animations includes selections from Czech Republic, Croatia, Argentina, Canada, UK, Switzerland, South Korea, France, Brazil, and Netherlands.
+ 
+One solitary stone embarks on a musical journey of self-discovery, as it ponders the meaning of life. Weighed down by self-doubt, this aimless martyr must begin to understand the importance of embracing your flaws and being your own destiny.Yorkshire Premiere | Julie Černá | Czech Republic | 2025 | 10 mins | Czech
+A woman expects the birth of her child in ritual isolation, cast out by a community that damns the product of her mortal 'sin'. Exploring the harshness of trad rurality, this Croatian folk tale contemplates timely stigma through a delicate historic lens.UK Premiere | Maida Srabović | Croatia, Slovenia | 2025 | 13 mins | Croatian
+Entangled in the morbid curiosities of a roadside pitstop, a young raver's paranoia begins to take hold. With mind and body in distorted unison, supernatural forces lead him further into the ghostly Argentine wilderness, lost in visions of gruesome neon.Yorkshire Premiere | Gervasio Canda, Paula Boffo, Patricio Plaza | Argentina, Canada | 2025 | 11 mins | Spain
+Monday morning at the Progress Mining Company is a decaying, cubist nightmare of monotony. As one worker shows round a new employer, another campaigns for its closure and reconstruction, as the long-buried secrets of Sector Three quickly come to light.Yorkshire Premiere | Gabriel Böhmer | UK, Switzerland | 2024 | 16 mins | English
+A red desk becomes the pint-size home of procrastination, as a hoard of spritely desk bugs manifest and multiply. With chaos at every turn, these tiny terrors of distraction are the furry foragers of emphatic silliness and overstimulation.Yorkshire Premiere | KIM Hakhyun | South Korea | 2024 | 3 mins | No D... [truncated]","url":""},
+				{"name":"Wanda","short":"wanda(1)","start":"2025-11-09 18:15","end":"2025-11-09 19:57","hls":"4","blurb":"A groundbreaking work of American independent cinema, Barbara Loden’s Wanda is a stark, unsentimental portrait of a woman adrift in Rust Belt America.
+Inspired by a news story, Loden wrote, directed, and starred as Wanda, a coal miner’s wife who abandons her family and drifts through bars, motels, and desolate landscapes, eventually falling in with a hapless thief. With an intimate vérité style, Wanda is a quietly devastating vision of a woman searching for something beyond the roles assigned to her.
+
+Contains scenes of domestic abuse and sexual threat. ","url":"https://www.leedsfilm.com/whats-on/wanda-t36c"}
+			]
+		},
+		{
+			"name":"Howard Assembly Room, Leeds Main Auditorium",
+			"events":[
+				{"name":"Our Heavenly Bodies (with Live Music Accompaniment)","short":"ourhea(1)","start":"2025-11-07 18:00","end":"2025-11-07 19:10","hls":"4 5","blurb":"Our Heavenly Bodies is an extraordinary German proto-documentary made in 1925 that harnesses the wonder of early cinema to explore no less than everything that was known about the universe at the time. 
+15 special effects experts and 9 cameramen were employed utilising innovative new animation techniques, historical documents and fictional re-enactments, prefiguring Carl Sagan, Brian Cox and Stanley Kubrick. Screening with live accompaniment by acclaimed pianist and keyboard player Matthew Bourne.
+","url":"https://www.leedsfilm.com/whats-on/our-heavenly-bodies-with-live-music-accompaniment-4qq3"}
+		]
+		},
+		{
+			"name":"The Leeds Library ",
+			"events":[
+				{"name":"Celtic Utopia","short":"celtic(2)","start":"2025-11-10 20:00","end":"2025-11-10 21:30","hls":"4","blurb":"A vibrant portrait of Ireland’s folk renaissance, Celtic Utopia captures a new wave of musicians who are bold, funny, and politically outspoken.
+Featuring the likes of The Mary Wallopers, The Deadlians, Young Spencer, Lankum and more, these artists grapple with Ireland’s complex past, confronting legacies of colonialism while imagining freer futures. With humour, honesty, and a loose energy, the film celebrates music’s power to challenge painful histories while shaping what comes next.
+","url":"https://www.leedsfilm.com/whats-on/celtic-utopia-rpv7"}
+		]
+		}
+	]
+}

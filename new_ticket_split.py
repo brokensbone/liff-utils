@@ -1,13 +1,12 @@
+import datetime
+import json
 import logging
 import os
-import pypdf
-import datetime
-from pathlib import Path
-import json
-
 import sys
-
 import unicodedata
+from pathlib import Path
+
+import pypdf
 
 
 def strip_diacritics(text):
@@ -62,9 +61,6 @@ def parse_film_details(page_text):
     except (IndexError, ValueError) as e:
         logging.error(f"Could not parse film details: {e}")
     return film_name, film_place, film_date, film_time
-
-
-import sys
 
 
 def find_owner(schedules, film_name, film_place, film_date, film_time):
@@ -159,6 +155,8 @@ def process_pdfs(in_dir, out_dir, schedules):
             logging.info(f"Wrote {out_fpath}")
 
     write_unclaimed_tickets(out_dir, unclaimed_tickets)
+    logging.info("Schedules not fulfilled:")
+    logging.info(json.dumps(schedules, indent=2))
 
 
 def write_unclaimed_tickets(out_dir, unclaimed_tickets):
