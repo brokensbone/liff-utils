@@ -124,8 +124,8 @@ def handle_film(url: str, cx: sqlite3.Connection):
     # get the running time
     extra_info = page.find("div", class_="extraInfo")
     if extra_info is None:
-        logging.warning(f"{url} has no info. Setting duration to 0")
-        minutes = 0
+        logging.warning(f"{url} has no info. Setting duration to 90")
+        minutes = 90
     else:
         run_time_match = re.search(
             r"(?:Running time|Runtime|runtime):*\s([0-9]*) (?:[Mm]inutes|[Mm]ins)",
