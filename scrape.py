@@ -1,4 +1,5 @@
 import logging
+from slugify import slugify
 import sqlite3
 import time
 import requests
@@ -15,6 +16,7 @@ parser.add_argument(
     "--clean", help="discard any previous cached html", action="store_true"
 )
 parser.add_argument("--single", help="run on a single film url", action="store")
+parser.add_argument("--posts", type=str, action="store")
 args = parser.parse_args()
 
 logging.basicConfig()
@@ -150,6 +152,18 @@ def handle_film(url: str, cx: sqlite3.Connection):
     desc = "\n".join(descs)
 
     book_section = page.find("ul", {"id": re.compile("sub-show-list[0-9]*")})
+
+    if post_dir := args.posts:
+        log.error("Not written yet")
+        filename = slugify(title) + ".md"
+        filepath = os.path.join(post_dir, filename)
+        with open(filepath, "w") as f:
+            f.write("+++\n")
+            f.write(f'title = "{title}"\n')
+            f.write("+++\n")
+            f.write(desc)
+            f.write("\n")
+        return
 
     if book_section is not None:
         book_rows = book_section.find_all("li")

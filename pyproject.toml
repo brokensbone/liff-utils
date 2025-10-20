@@ -10,5 +10,6 @@ dependencies = [
     "pypdf2==3.0.1",
     "pytest>=8.4.2",
     "python-dateutil==2.8.2",
+    "python-slugify>=8.0.4",
     "requests==2.31.0",
 ]
