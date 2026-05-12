@@ -15,7 +15,7 @@ parser.add_argument(
     "--clean", help="discard any previous cached html", action="store_true"
 )
 parser.add_argument("--single", help="run on a single film url", action="store")
-args = parser.parse_args()
+args = argparse.Namespace(clean=False, single=None)
 
 logging.basicConfig()
 log = logging.getLogger()
@@ -25,7 +25,7 @@ err_handler = logging.FileHandler("errors.log")
 err_handler.setLevel(logging.ERROR)
 log.addHandler(err_handler)
 
-output_file = open("clashfinder", "w")
+output_file = None
 
 BASE_URL = "https://www.leedsfilm.com"
 DATE_FORMAT_IN = "%a %d %b %Y %H:%M"  # Fri 6 Nov 2022 13:15
@@ -251,12 +251,13 @@ def remap_venue(venue: str) -> str:
 
 
 if __name__ == "__main__":
-    if args.single:
-        cx = sqlite3.connect("html.db")
-        handle_film(args.single, cx)
-    else:
-        go()
-output_file.close()
+    args = parser.parse_args()
+    with open("clashfinder", "w") as output_file:
+        if args.single:
+            cx = sqlite3.connect("html.db")
+            handle_film(args.single, cx)
+        else:
+            go()
 
 for x in all_lengths:
     log.debug(x)
