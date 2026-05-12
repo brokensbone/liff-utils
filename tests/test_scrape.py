@@ -1,12 +1,18 @@
 import unittest
 import sqlite3
-from unittest.mock import patch, mock_open
+import datetime
+import json
+from unittest.mock import Mock, patch
 from bs4 import BeautifulSoup
 import sys
 
 sys.path.append(".")
 
 import scrape
+
+
+def clashfinder_payload(output_line):
+    return json.loads(output_line.removeprefix("act = "))
 
 
 class TestScrape(unittest.TestCase):
@@ -32,6 +38,58 @@ class TestScrape(unittest.TestCase):
         book_row = BeautifulSoup(html, "html.parser")
         venue = scrape.extract_venue(book_row)
         self.assertEqual(venue, "Everyman Cinema Screen 1")
+
+    def test_build_date_range_crosses_midnight(self):
+        parsed_start, parsed_end = scrape.build_date_range(95, "Fri 7 Nov", "23:30")
+
+        self.assertEqual(parsed_start, datetime.datetime(2025, 11, 7, 23, 30))
+        self.assertEqual(parsed_end, datetime.datetime(2025, 11, 8, 1, 5))
+
+    @patch("scrape.requests.get")
+    def test_retrieve_film_uses_cached_html(self, mock_get):
+        url = "https://www.leedsfilm.com/whats-on/cached-film"
+        html = "<html>cached</html>"
+        self.cx.execute("INSERT INTO cache VALUES (?, ?)", (url, html))
+
+        self.assertEqual(scrape.retrieve_film(self.cx, url), html)
+        mock_get.assert_not_called()
+
+    @patch("scrape.requests.get")
+    def test_retrieve_film_stores_downloaded_html(self, mock_get):
+        url = "https://www.leedsfilm.com/whats-on/new-film"
+        mock_get.return_value = Mock(status_code=200, content=b"<html>downloaded</html>")
+
+        self.assertEqual(scrape.retrieve_film(self.cx, url), b"<html>downloaded</html>")
+        mock_get.assert_called_once_with(url)
+
+        row = self.cx.execute("SELECT html FROM cache WHERE url = ?", (url,)).fetchone()
+        self.assertEqual(row[0], b"<html>downloaded</html>")
+
+    @patch("scrape.output_file")
+    def test_handle_film_without_runtime_uses_zero_duration(self, mock_output_file):
+        url = "https://www.leedsfilm.com/whats-on/no-runtime"
+        html = """
+        <div class="desc"><h1>No Runtime Film</h1></div>
+        <div class="desc1"><p>One line.</p></div>
+        <ul id="sub-show-list1">
+            <li>
+                <div class="date"><div class="start">Sat 8 Nov</div></div>
+                <div class="time"><span class="start">10:45</span></div>
+                <div class="location">Hyde Park Picture House, Leeds</div>
+                <div class="venue">Screen 1</div>
+            </li>
+        </ul>
+        """
+        self.cx.execute("INSERT INTO cache VALUES (?, ?)", (url, html))
+
+        scrape.handle_film(url, self.cx)
+
+        mock_output_file.write.assert_called_once()
+        payload = clashfinder_payload(mock_output_file.write.call_args[0][0].strip())
+        self.assertEqual(payload["act"], "No Runtime Film")
+        self.assertEqual(payload["stage"], "Hyde Park Picture House, Screen 1")
+        self.assertEqual(payload["start"], "2025-11-08 10:45")
+        self.assertEqual(payload["end"], "2025-11-08 10:45")
 
     @patch("scrape.output_file")
     def test_handle_film(self, mock_output_file):
