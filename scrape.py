@@ -70,7 +70,9 @@ def get_index(output_dir, clean=False, offline=False):
     else:
         raise RuntimeError("Index exceeded 99 pages")
     # The programme preview is an event, not a film.
-    films = [entry for entry in entries if entry["title"] != f"LIFF {YEAR} Programme Preview"]
+    films = [
+        entry for entry in entries if entry["title"] != f"LIFF {YEAR} Programme Preview"
+    ]
     (output_dir / "films.json").write_text(
         json.dumps(films, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -92,13 +94,18 @@ def retrieve_film(db, url, clean=False, offline=False):
 
 
 def skip_text(text):
-    return "also be available to view on Leeds Film Player" in text or text == "Save with a LIFF 2022 Pass"
+    return (
+        "also be available to view on Leeds Film Player" in text
+        or text == "Save with a LIFF 2022 Pass"
+    )
 
 
 def build_date_range(minutes, date_text, time_text, year=None):
     if year is None:
         year = YEAR
-    start = datetime.datetime.strptime(f"{date_text} {year} {time_text}", DATE_FORMAT_IN)
+    start = datetime.datetime.strptime(
+        f"{date_text} {year} {time_text}", DATE_FORMAT_IN
+    )
     return start, start + datetime.timedelta(minutes=minutes)
 
 
@@ -142,7 +149,15 @@ def parse_film(html, url, review=None, runtime_overrides=None, marker=None):
     title = title_node.get_text(" ", strip=True)
     display_title = f"{marker}: {title}" if marker else title
     info = page.select_one("div.extraInfo")
-    runtime = re.search(r"(?:Running time|Runtime)\s*:?\s*(\d+)", info.get_text(" ", strip=True), re.I) if info else None
+    runtime = (
+        re.search(
+            r"(?:Running time|Runtime)\s*:?\s*(\d+)",
+            info.get_text(" ", strip=True),
+            re.I,
+        )
+        if info
+        else None
+    )
     description = page.select_one("div.desc1")
     if runtime:
         minutes = int(runtime.group(1))
@@ -154,31 +169,53 @@ def parse_film(html, url, review=None, runtime_overrides=None, marker=None):
                 raise ValueError(f"Invalid runtime override for {title}: {minutes}")
             source = override["reason"]
         else:
-            listed_minutes = [
-                int(value) for value in re.findall(
-                    r"\b(\d+)\s*(?:mins|minutes)\b",
-                    description.get_text(" ", strip=True) if description else "",
-                    re.I,
-                )
-            ] if "Competition" in title or "Panorama" in title else []
+            listed_minutes = (
+                [
+                    int(value)
+                    for value in re.findall(
+                        r"\b(\d+)\s*(?:mins|minutes)\b",
+                        description.get_text(" ", strip=True) if description else "",
+                        re.I,
+                    )
+                ]
+                if "Competition" in title or "Panorama" in title
+                else []
+            )
             minutes = sum(listed_minutes)
-            source = "sum of listed shorts; breaks not included" if listed_minutes else "unknown; no runtime supplied"
+            source = (
+                "sum of listed shorts; breaks not included"
+                if listed_minutes
+                else "unknown; no runtime supplied"
+            )
         log.warning("%s: %s (%s minutes)", title, source, minutes)
         if review is not None:
-            review.append({"title": title, "url": url, "minutes": minutes, "reason": source})
-    desc = "\n".join(
-        text for p in description.select("p")
-        if (text := p.get_text(" ", strip=True)) and not skip_text(text)
-    ) if description else ""
+            review.append(
+                {"title": title, "url": url, "minutes": minutes, "reason": source}
+            )
+    desc = (
+        "\n".join(
+            text
+            for p in description.select("p")
+            if (text := p.get_text(" ", strip=True)) and not skip_text(text)
+        )
+        if description
+        else ""
+    )
     rows = page.select('ul[id^="sub-show-list"] li')
     if not rows:
         top_date = page.select_one("div.top-date")
         date_node = top_date.select_one("span.start") if top_date else None
         time_node = top_date.select_one("span.time") if top_date else None
-        time_match = re.search(r"\b\d{1,2}:\d{2}\b", time_node.get_text(" ", strip=True)) if time_node else None
+        time_match = (
+            re.search(r"\b\d{1,2}:\d{2}\b", time_node.get_text(" ", strip=True))
+            if time_node
+            else None
+        )
         if not date_node or not time_match:
             raise ValueError(f"No screening date or time for {title}: {url}")
-        start, end = build_date_range(minutes, date_node.get_text(" ", strip=True), time_match.group())
+        start, end = build_date_range(
+            minutes, date_node.get_text(" ", strip=True), time_match.group()
+        )
         return [build_output(url, display_title, desc, start, end, extract_venue(page))]
     output = []
     for row in rows:
@@ -186,8 +223,14 @@ def parse_film(html, url, review=None, runtime_overrides=None, marker=None):
         time_node = row.select_one("div.time span.start")
         if not date_node or not time_node:
             raise ValueError(f"Incomplete screening for {title}: {url}")
-        start, end = build_date_range(minutes, date_node.get_text(" ", strip=True), time_node.get_text(" ", strip=True))
-        output.append(build_output(url, display_title, desc, start, end, extract_venue(row)))
+        start, end = build_date_range(
+            minutes,
+            date_node.get_text(" ", strip=True),
+            time_node.get_text(" ", strip=True),
+        )
+        output.append(
+            build_output(url, display_title, desc, start, end, extract_venue(row))
+        )
     return output
 
 
@@ -210,7 +253,12 @@ def download_missing(db, films, batch_size=None, delay=1.0):
     missing_count = len(missing)
     if batch_size is not None:
         missing = missing[:batch_size]
-    log.info("%s cached, %s of %s missing pages to fetch this run", len(films) - missing_count, len(missing), missing_count)
+    log.info(
+        "%s cached, %s of %s missing pages to fetch this run",
+        len(films) - missing_count,
+        len(missing),
+        missing_count,
+    )
     for index, url in enumerate(missing, 1):
         if index > 1:
             time.sleep(delay)
@@ -219,7 +267,16 @@ def download_missing(db, films, batch_size=None, delay=1.0):
     return len(missing)
 
 
-def run(output_dir, clean=False, limit=None, single=None, download_only=False, offline=False, batch_size=None, delay=1.0):
+def run(
+    output_dir,
+    clean=False,
+    limit=None,
+    single=None,
+    download_only=False,
+    offline=False,
+    batch_size=None,
+    delay=1.0,
+):
     output_dir.mkdir(parents=True, exist_ok=True)
     films = [{"url": single}] if single else get_index(output_dir, clean, offline)
     parents, labels = marathon_labels(output_dir)
@@ -227,7 +284,11 @@ def run(output_dir, clean=False, limit=None, single=None, download_only=False, o
         films = films[:limit]
     films = [film for film in films if film["url"] not in parents]
     overrides_path = output_dir / "runtime-overrides.json"
-    runtime_overrides = json.loads(overrides_path.read_text(encoding="utf-8")) if overrides_path.exists() else {}
+    runtime_overrides = (
+        json.loads(overrides_path.read_text(encoding="utf-8"))
+        if overrides_path.exists()
+        else {}
+    )
     with sqlite3.connect(output_dir / "html.db") as db:
         db.execute("CREATE TABLE IF NOT EXISTS cache (url TEXT PRIMARY KEY, html BLOB)")
         if download_only:
@@ -238,24 +299,49 @@ def run(output_dir, clean=False, limit=None, single=None, download_only=False, o
         for film in films:
             url = film["url"]
             log.info("Extracting %s", url)
-            lines.extend(parse_film(retrieve_film(db, url, clean, offline), url, review, runtime_overrides, labels.get(url)))
+            lines.extend(
+                parse_film(
+                    retrieve_film(db, url, clean, offline),
+                    url,
+                    review,
+                    runtime_overrides,
+                    labels.get(url),
+                )
+            )
     (output_dir / "clashfinder").write_text("\n".join(lines) + "\n", encoding="utf-8")
     (output_dir / "duration-review.json").write_text(
         json.dumps(review, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    log.info("Wrote %s screenings from %s films; %s runtimes need review", len(lines), len(films), len(review))
+    log.info(
+        "Wrote %s screenings from %s films; %s runtimes need review",
+        len(lines),
+        len(films),
+        len(review),
+    )
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--year", type=int, default=YEAR)
     parser.add_argument("--clean", action="store_true", help="refresh cached HTML")
-    parser.add_argument("--limit", type=int, help="extract the first N films from the index")
+    parser.add_argument(
+        "--limit", type=int, help="extract the first N films from the index"
+    )
     parser.add_argument("--single", help="extract a single film URL")
-    parser.add_argument("--download-only", action="store_true", help="cache missing film pages without extracting")
-    parser.add_argument("--offline", action="store_true", help="extract using cached HTML only")
-    parser.add_argument("--batch-size", type=int, help="maximum new film pages to download")
-    parser.add_argument("--delay", type=float, default=1.0, help="seconds between film page requests")
+    parser.add_argument(
+        "--download-only",
+        action="store_true",
+        help="cache missing film pages without extracting",
+    )
+    parser.add_argument(
+        "--offline", action="store_true", help="extract using cached HTML only"
+    )
+    parser.add_argument(
+        "--batch-size", type=int, help="maximum new film pages to download"
+    )
+    parser.add_argument(
+        "--delay", type=float, default=1.0, help="seconds between film page requests"
+    )
     args = parser.parse_args()
     if args.clean and args.offline:
         parser.error("--clean and --offline cannot be combined")
@@ -267,4 +353,13 @@ if __name__ == "__main__":
         parser.error("--delay cannot be negative")
     YEAR = args.year
     logging.basicConfig(level=logging.INFO)
-    run(Path(str(args.year)), args.clean, args.limit, args.single, args.download_only, args.offline, args.batch_size, args.delay)
+    run(
+        Path(str(args.year)),
+        args.clean,
+        args.limit,
+        args.single,
+        args.download_only,
+        args.offline,
+        args.batch_size,
+        args.delay,
+    )
