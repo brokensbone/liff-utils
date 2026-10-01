@@ -2,8 +2,8 @@
   {
     "title": "Day of the Dead",
     "url": "https://www.leedsfilm.com/whats-on/day-of-the-dead-bzvd",
-    "minutes": 0,
-    "reason": "unknown; no runtime supplied"
+    "minutes": 541,
+    "reason": "Inferred from final advertised film Ghost in the Cell ending at 22:16"
   },
   {
     "title": "Documentary Short Film Panorama: City Variations",
@@ -38,8 +38,8 @@
   {
     "title": "Vera Media: Archiving the City",
     "url": "https://www.leedsfilm.com/whats-on/vera-media-archiving-the-city-5v2n",
-    "minutes": 0,
-    "reason": "unknown; no runtime supplied"
+    "minutes": 90,
+    "reason": "Provisional estimate: next screening in the same room starts at 19:45; allows 15 minutes between events"
   },
   {
     "title": "Leeds Queer Short Film Competition 1",
@@ -74,8 +74,8 @@
   {
     "title": "Celebrating Louis le Prince",
     "url": "https://www.leedsfilm.com/whats-on/celebrating-louis-le-prince-nmyf",
-    "minutes": 0,
-    "reason": "unknown; no runtime supplied"
+    "minutes": 90,
+    "reason": "Provisional estimate: next screening in the same room starts at 19:45; listing overlaps Leeds Music Video Competition"
   },
   {
     "title": "Leeds Queer Short Film Competition 2",
@@ -128,8 +128,8 @@
   {
     "title": "Animation Panorama: Between Chaos and Vertigo",
     "url": "https://www.leedsfilm.com/whats-on/animation-panorama-between-chaos-and-vertigo-nm2f",
-    "minutes": 0,
-    "reason": "unknown; no runtime supplied"
+    "minutes": 90,
+    "reason": "Provisional estimate for a shorts programme; no runtime or later same-room screening listed"
   },
   {
     "title": "British Short Film Competition 1",
@@ -146,13 +146,13 @@
   {
     "title": "LIFF SHORTS 2026: The Award-Winners",
     "url": "https://www.leedsfilm.com/whats-on/liff-shorts-2026-the-award-winners-d3v9",
-    "minutes": 0,
-    "reason": "unknown; no runtime supplied"
+    "minutes": 120,
+    "reason": "Provisional estimate within the shortest same-room gap before the next screening"
   },
   {
     "title": "Night of the Dead",
     "url": "https://www.leedsfilm.com/whats-on/night-of-the-dead-jqly",
-    "minutes": 0,
-    "reason": "unknown; no runtime supplied"
+    "minutes": 450,
+    "reason": "Provisional estimate: four advertised features total 354 minutes and listed shorts total 59 minutes, plus 37 minutes for breaks"
   }
 ]

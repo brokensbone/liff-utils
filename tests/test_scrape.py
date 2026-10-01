@@ -93,6 +93,20 @@ class TestScrape(unittest.TestCase):
         self.assertEqual(row["stage"], "Vue in the Light, Screen 11")
         self.assertEqual(review[0]["minutes"], 30)
 
+    def test_explicit_runtime_override_is_recorded_for_review(self):
+        html = """
+        <div class="desc"><h1>Unscheduled Event</h1></div>
+        <div class="top-date"><span class="start">Wed 4 Nov</span><span class="time">- 18:00</span></div>
+        <div class="location">Leeds City Library</div><div class="venue">Screening Room</div>
+        """
+        url = "https://example.com/event"
+        review = []
+        row = json.loads(scrape.parse_film(
+            html, url, review, {url: {"minutes": 90, "reason": "Provisional estimate"}}
+        )[0][6:])
+        self.assertEqual(row["end"], "2026-11-04 19:30")
+        self.assertEqual(review[0]["reason"], "Provisional estimate")
+
     @patch("scrape.requests.get")
     def test_fetch_stops_on_rate_limit(self, get):
         response = requests.Response()

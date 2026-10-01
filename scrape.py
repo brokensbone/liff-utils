@@ -134,7 +134,7 @@ def extract_venue(row):
     return remap_venue(" ".join(parts)) if parts else "Unknown"
 
 
-def parse_film(html, url, review=None):
+def parse_film(html, url, review=None, runtime_overrides=None):
     page = BeautifulSoup(html, "lxml")
     title_node = page.select_one("div.desc h1")
     if not title_node:
@@ -146,15 +146,22 @@ def parse_film(html, url, review=None):
     if runtime:
         minutes = int(runtime.group(1))
     else:
-        listed_minutes = [
-            int(value) for value in re.findall(
-                r"\b(\d+)\s*(?:mins|minutes)\b",
-                description.get_text(" ", strip=True) if description else "",
-                re.I,
-            )
-        ] if "Competition" in title or "Panorama" in title else []
-        minutes = sum(listed_minutes)
-        source = "sum of listed shorts; breaks not included" if listed_minutes else "unknown; no runtime supplied"
+        override = (runtime_overrides or {}).get(url)
+        if override:
+            minutes = override["minutes"]
+            if not isinstance(minutes, int) or minutes <= 0:
+                raise ValueError(f"Invalid runtime override for {title}: {minutes}")
+            source = override["reason"]
+        else:
+            listed_minutes = [
+                int(value) for value in re.findall(
+                    r"\b(\d+)\s*(?:mins|minutes)\b",
+                    description.get_text(" ", strip=True) if description else "",
+                    re.I,
+                )
+            ] if "Competition" in title or "Panorama" in title else []
+            minutes = sum(listed_minutes)
+            source = "sum of listed shorts; breaks not included" if listed_minutes else "unknown; no runtime supplied"
         log.warning("%s: %s (%s minutes)", title, source, minutes)
         if review is not None:
             review.append({"title": title, "url": url, "minutes": minutes, "reason": source})
@@ -203,6 +210,8 @@ def run(output_dir, clean=False, limit=None, single=None, download_only=False, o
     films = [{"url": single}] if single else get_index(output_dir, clean, offline)
     if limit is not None:
         films = films[:limit]
+    overrides_path = output_dir / "runtime-overrides.json"
+    runtime_overrides = json.loads(overrides_path.read_text(encoding="utf-8")) if overrides_path.exists() else {}
     with sqlite3.connect(output_dir / "html.db") as db:
         db.execute("CREATE TABLE IF NOT EXISTS cache (url TEXT PRIMARY KEY, html BLOB)")
         if download_only:
@@ -213,7 +222,7 @@ def run(output_dir, clean=False, limit=None, single=None, download_only=False, o
         for film in films:
             url = film["url"]
             log.info("Extracting %s", url)
-            lines.extend(parse_film(retrieve_film(db, url, clean, offline), url, review))
+            lines.extend(parse_film(retrieve_film(db, url, clean, offline), url, review, runtime_overrides))
     (output_dir / "clashfinder").write_text("\n".join(lines) + "\n", encoding="utf-8")
     (output_dir / "duration-review.json").write_text(
         json.dumps(review, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
