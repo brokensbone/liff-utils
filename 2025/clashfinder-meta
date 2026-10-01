@@ -1,0 +1,9 @@
+maintitle = Leeds International Film Festival (LIFF) 2025 Clashfinder
+timezone = Europe/London
+dateFormat = dddd dS mmmm
+printAdvisory = 5
+footer = Times liable to change
+footer = Rev [revnum] ([editdate])
+daychangeover = 08:00
+lpRevisions
+lpComments
