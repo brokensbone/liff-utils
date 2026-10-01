@@ -1,130 +1,107 @@
-import unittest
-import sqlite3
-import datetime
 import json
-from unittest.mock import Mock, patch
-from bs4 import BeautifulSoup
-import sys
+import sqlite3
+import unittest
+from pathlib import Path
+from unittest.mock import patch
 
-sys.path.append(".")
-
+import requests
 import scrape
 
 
-def clashfinder_payload(output_line):
-    return json.loads(output_line.removeprefix("act = "))
+ROOT = Path(__file__).resolve().parents[1]
+YEAR_DIR = ROOT / "2026"
+
+
+def payloads(filename, url):
+    return [
+        json.loads(line.removeprefix("act = "))
+        for line in scrape.parse_film((YEAR_DIR / filename).read_bytes(), url)
+    ]
 
 
 class TestScrape(unittest.TestCase):
-    def setUp(self):
-        self.cx = sqlite3.connect(":memory:")
-        self.cx.execute("CREATE TABLE cache (url TEXT, html TEXT)")
-
-    def tearDown(self):
-        self.cx.close()
-
-    def test_get_main_page(self):
-        with open("tests/fixtures/allfilm-1.html", "r") as f:
-            html = f.read()
-        soup = BeautifulSoup(html, "html.parser")
-        film_links = soup.find_all("a", class_="desc")
-        self.assertEqual(len(film_links), 54)
-
-    def test_extract_venue(self):
+    def test_index_extraction_and_saved_film_list(self):
         html = """
-        <div class="location">Everyman Cinema Leeds, Leeds</div>
-        <div class="venue">Screen 1</div>
+        <a class="desc" href="/whats-on/preview"><h3 class="title">LIFF 2026 Programme Preview</h3></a>
+        <a class="desc" href="/whats-on/mouse-sbj2"><h3 class="title">Mouse</h3></a>
+        <a class="desc" href="/whats-on/mouse-sbj2"><h3 class="title">Mouse</h3></a>
         """
-        book_row = BeautifulSoup(html, "html.parser")
-        venue = scrape.extract_venue(book_row)
-        self.assertEqual(venue, "Everyman Cinema Screen 1")
+        entries = scrape.index_entries(html)
+        self.assertEqual(entries, [
+            {"title": "LIFF 2026 Programme Preview", "url": "https://www.leedsfilm.com/whats-on/preview"},
+            {"title": "Mouse", "url": "https://www.leedsfilm.com/whats-on/mouse-sbj2"},
+        ])
+        films = json.loads((YEAR_DIR / "films.json").read_text())
+        self.assertEqual(len(films), 152)
+        self.assertEqual(len({item["url"] for item in films}), 152)
+        self.assertNotIn("LIFF 2026 Programme Preview", [item["title"] for item in films])
 
-    def test_build_date_range_crosses_midnight(self):
-        parsed_start, parsed_end = scrape.build_date_range(95, "Fri 7 Nov", "23:30")
+    def test_three_live_film_pages(self):
+        cases = [
+            ("pan-s-labyrinth-20th-anniversary-4k-restoration-7nl8", "Pan's Labyrinth (20th Anniversary 4K Restoration)", 2, "2026-10-29 15:30", "2026-10-29 17:28", "Vue in the Light, Screen 7"),
+            ("iron-boy-n31f", "Iron Boy", 3, "2026-10-29 15:45", "2026-10-29 17:15", "Vue in the Light, Screen 12"),
+            ("mouse-sbj2", "Mouse", 4, "2026-10-29 17:45", "2026-10-29 19:45", "Hyde Park Picture House, Screen 1"),
+        ]
+        for slug, title, count, start, end, venue in cases:
+            with self.subTest(title=title):
+                url = f"https://www.leedsfilm.com/whats-on/{slug}"
+                rows = payloads(f"{slug}.html", url)
+                self.assertEqual(len(rows), count)
+                self.assertEqual(rows[0]["act"], title)
+                self.assertEqual(rows[0]["start"], start)
+                self.assertEqual(rows[0]["end"], end)
+                self.assertEqual(rows[0]["stage"], venue)
+                self.assertTrue(rows[0]["blurb"])
+                self.assertTrue(all(row["url"] == url for row in rows))
+        iron_boy = payloads("iron-boy-n31f.html", "https://www.leedsfilm.com/whats-on/iron-boy-n31f")
+        self.assertEqual(iron_boy[-1]["stage"], "Cottage Road Cinema")
 
-        self.assertEqual(parsed_start, datetime.datetime(2025, 11, 7, 23, 30))
-        self.assertEqual(parsed_end, datetime.datetime(2025, 11, 8, 1, 5))
+    @patch("scrape.fetch")
+    def test_retrieve_film_uses_cache(self, fetch):
+        with sqlite3.connect(":memory:") as db:
+            db.execute("CREATE TABLE cache (url TEXT PRIMARY KEY, html BLOB)")
+            db.execute("INSERT INTO cache VALUES (?, ?)", ("https://example.com/film", b"saved"))
+            self.assertEqual(scrape.retrieve_film(db, "https://example.com/film"), b"saved")
+        fetch.assert_not_called()
+
+    @patch("scrape.time.sleep")
+    @patch("scrape.fetch", return_value=b"<html>downloaded</html>")
+    def test_download_missing_only_fetches_uncached_pages(self, fetch, sleep):
+        films = [
+            {"url": "https://example.com/cached"},
+            {"url": "https://example.com/missing"},
+        ]
+        with sqlite3.connect(":memory:") as db:
+            db.execute("CREATE TABLE cache (url TEXT PRIMARY KEY, html BLOB)")
+            db.execute("INSERT INTO cache VALUES (?, ?)", (films[0]["url"], b"saved"))
+            self.assertEqual(scrape.download_missing(db, films), 1)
+            self.assertEqual(scrape.download_missing(db, films), 0)
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM cache").fetchone()[0], 2)
+        fetch.assert_called_once_with(films[1]["url"])
+        sleep.assert_not_called()
+
+    def test_single_screening_without_a_total_runtime(self):
+        html = """
+        <div class="desc"><h1>Short Film Competition</h1></div>
+        <div class="desc1"><p>First | 12 mins</p><p>Second | 18 mins</p></div>
+        <div class="top-date"><span class="start">Sat 31 Oct</span><span class="time">- 13:15</span></div>
+        <div class="location">Vue in the Light, Leeds</div><div class="venue">Screen 11</div>
+        """
+        review = []
+        row = json.loads(scrape.parse_film(html, "https://example.com/shorts", review)[0][6:])
+        self.assertEqual((row["start"], row["end"]), ("2026-10-31 13:15", "2026-10-31 13:45"))
+        self.assertEqual(row["stage"], "Vue in the Light, Screen 11")
+        self.assertEqual(review[0]["minutes"], 30)
 
     @patch("scrape.requests.get")
-    def test_retrieve_film_uses_cached_html(self, mock_get):
-        url = "https://www.leedsfilm.com/whats-on/cached-film"
-        html = "<html>cached</html>"
-        self.cx.execute("INSERT INTO cache VALUES (?, ?)", (url, html))
-
-        self.assertEqual(scrape.retrieve_film(self.cx, url), html)
-        mock_get.assert_not_called()
-
-    @patch("scrape.requests.get")
-    def test_retrieve_film_stores_downloaded_html(self, mock_get):
-        url = "https://www.leedsfilm.com/whats-on/new-film"
-        mock_get.return_value = Mock(status_code=200, content=b"<html>downloaded</html>")
-
-        self.assertEqual(scrape.retrieve_film(self.cx, url), b"<html>downloaded</html>")
-        mock_get.assert_called_once_with(url)
-
-        row = self.cx.execute("SELECT html FROM cache WHERE url = ?", (url,)).fetchone()
-        self.assertEqual(row[0], b"<html>downloaded</html>")
-
-    @patch("scrape.output_file")
-    def test_handle_film_without_runtime_uses_zero_duration(self, mock_output_file):
-        url = "https://www.leedsfilm.com/whats-on/no-runtime"
-        html = """
-        <div class="desc"><h1>No Runtime Film</h1></div>
-        <div class="desc1"><p>One line.</p></div>
-        <ul id="sub-show-list1">
-            <li>
-                <div class="date"><div class="start">Sat 8 Nov</div></div>
-                <div class="time"><span class="start">10:45</span></div>
-                <div class="location">Hyde Park Picture House, Leeds</div>
-                <div class="venue">Screen 1</div>
-            </li>
-        </ul>
-        """
-        self.cx.execute("INSERT INTO cache VALUES (?, ?)", (url, html))
-
-        scrape.handle_film(url, self.cx)
-
-        mock_output_file.write.assert_called_once()
-        payload = clashfinder_payload(mock_output_file.write.call_args[0][0].strip())
-        self.assertEqual(payload["act"], "No Runtime Film")
-        self.assertEqual(payload["stage"], "Hyde Park Picture House, Screen 1")
-        self.assertEqual(payload["start"], "2025-11-08 10:45")
-        self.assertEqual(payload["end"], "2025-11-08 10:45")
-
-    @patch("scrape.output_file")
-    def test_handle_film(self, mock_output_file):
-        with open("tests/fixtures/bugonia.html", "r") as f:
-            html = f.read()
-        self.cx.execute("INSERT INTO cache VALUES (?, ?)", ("https://www.leedsfilm.com/whats-on/bugonia-fh1q", html))
-        scrape.handle_film("https://www.leedsfilm.com/whats-on/bugonia-fh1q", self.cx)
-
-        self.assertEqual(mock_output_file.write.call_count, 4)
-
-        calls = mock_output_file.write.call_args_list
-
-        first_call = calls[0][0][0]
-        self.assertIn('"act": "Bugonia"', first_call)
-        self.assertIn('"stage": "Vue in the Light, Screen 12"', first_call)
-        self.assertIn('"start": "2025-10-30 20:30"', first_call)
-        self.assertIn('"end": "2025-10-30 22:30"', first_call)
-
-        second_call = calls[1][0][0]
-        self.assertIn('"act": "Bugonia"', second_call)
-        self.assertIn('"stage": "Vue in the Light, Screen 12"', second_call)
-        self.assertIn('"start": "2025-10-31 18:00"', second_call)
-        self.assertIn('"end": "2025-10-31 20:00"', second_call)
-
-        third_call = calls[2][0][0]
-        self.assertIn('"act": "Bugonia"', third_call)
-        self.assertIn('"stage": "Vue in the Light, Screen 7"', third_call)
-        self.assertIn('"start": "2025-11-03 18:00"', third_call)
-        self.assertIn('"end": "2025-11-03 20:00"', third_call)
-
-        fourth_call = calls[3][0][0]
-        self.assertIn('"act": "Bugonia"', fourth_call)
-        self.assertIn('"stage": "Vue in the Light, Screen 7"', fourth_call)
-        self.assertIn('"start": "2025-11-04 16:00"', fourth_call)
-        self.assertIn('"end": "2025-11-04 18:00"', fourth_call)
+    def test_fetch_stops_on_rate_limit(self, get):
+        response = requests.Response()
+        response.status_code = 429
+        response.url = "https://example.com/rate-limited"
+        get.return_value = response
+        with self.assertRaises(requests.HTTPError):
+            scrape.fetch(response.url)
+        get.assert_called_once()
 
 
 if __name__ == "__main__":
