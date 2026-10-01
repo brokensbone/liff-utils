@@ -134,12 +134,13 @@ def extract_venue(row):
     return remap_venue(" ".join(parts)) if parts else "Unknown"
 
 
-def parse_film(html, url, review=None, runtime_overrides=None):
+def parse_film(html, url, review=None, runtime_overrides=None, marker=None):
     page = BeautifulSoup(html, "lxml")
     title_node = page.select_one("div.desc h1")
     if not title_node:
         raise ValueError(f"No title on {url}")
     title = title_node.get_text(" ", strip=True)
+    display_title = f"{marker}: {title}" if marker else title
     info = page.select_one("div.extraInfo")
     runtime = re.search(r"(?:Running time|Runtime)\s*:?\s*(\d+)", info.get_text(" ", strip=True), re.I) if info else None
     description = page.select_one("div.desc1")
@@ -178,7 +179,7 @@ def parse_film(html, url, review=None, runtime_overrides=None):
         if not date_node or not time_match:
             raise ValueError(f"No screening date or time for {title}: {url}")
         start, end = build_date_range(minutes, date_node.get_text(" ", strip=True), time_match.group())
-        return [build_output(url, title, desc, start, end, extract_venue(page))]
+        return [build_output(url, display_title, desc, start, end, extract_venue(page))]
     output = []
     for row in rows:
         date_node = row.select_one("div.date div.start")
@@ -186,8 +187,21 @@ def parse_film(html, url, review=None, runtime_overrides=None):
         if not date_node or not time_node:
             raise ValueError(f"Incomplete screening for {title}: {url}")
         start, end = build_date_range(minutes, date_node.get_text(" ", strip=True), time_node.get_text(" ", strip=True))
-        output.append(build_output(url, title, desc, start, end, extract_venue(row)))
+        output.append(build_output(url, display_title, desc, start, end, extract_venue(row)))
     return output
+
+
+def marathon_labels(output_dir):
+    path = output_dir / "marathon-groups.json"
+    groups = json.loads(path.read_text(encoding="utf-8")) if path.exists() else []
+    parents = {group["parent"] for group in groups}
+    labels = {}
+    for group in groups:
+        for url in group["films"]:
+            if url in labels:
+                raise ValueError(f"Film belongs to multiple marathon groups: {url}")
+            labels[url] = group["marker"]
+    return parents, labels
 
 
 def download_missing(db, films, batch_size=None, delay=1.0):
@@ -208,8 +222,10 @@ def download_missing(db, films, batch_size=None, delay=1.0):
 def run(output_dir, clean=False, limit=None, single=None, download_only=False, offline=False, batch_size=None, delay=1.0):
     output_dir.mkdir(parents=True, exist_ok=True)
     films = [{"url": single}] if single else get_index(output_dir, clean, offline)
+    parents, labels = marathon_labels(output_dir)
     if limit is not None:
         films = films[:limit]
+    films = [film for film in films if film["url"] not in parents]
     overrides_path = output_dir / "runtime-overrides.json"
     runtime_overrides = json.loads(overrides_path.read_text(encoding="utf-8")) if overrides_path.exists() else {}
     with sqlite3.connect(output_dir / "html.db") as db:
@@ -222,7 +238,7 @@ def run(output_dir, clean=False, limit=None, single=None, download_only=False, o
         for film in films:
             url = film["url"]
             log.info("Extracting %s", url)
-            lines.extend(parse_film(retrieve_film(db, url, clean, offline), url, review, runtime_overrides))
+            lines.extend(parse_film(retrieve_film(db, url, clean, offline), url, review, runtime_overrides, labels.get(url)))
     (output_dir / "clashfinder").write_text("\n".join(lines) + "\n", encoding="utf-8")
     (output_dir / "duration-review.json").write_text(
         json.dumps(review, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

@@ -1,8 +1,4 @@
 {
-  "https://www.leedsfilm.com/whats-on/day-of-the-dead-bzvd": {
-    "minutes": 541,
-    "reason": "Inferred from final advertised film Ghost in the Cell ending at 22:16"
-  },
   "https://www.leedsfilm.com/whats-on/vera-media-archiving-the-city-5v2n": {
     "minutes": 90,
     "reason": "Provisional estimate: next screening in the same room starts at 19:45; allows 15 minutes between events"
@@ -18,9 +14,5 @@
   "https://www.leedsfilm.com/whats-on/liff-shorts-2026-the-award-winners-d3v9": {
     "minutes": 120,
     "reason": "Provisional estimate within the shortest same-room gap before the next screening"
-  },
-  "https://www.leedsfilm.com/whats-on/night-of-the-dead-jqly": {
-    "minutes": 450,
-    "reason": "Provisional estimate: four advertised features total 354 minutes and listed shorts total 59 minutes, plus 37 minutes for breaks"
   }
 }

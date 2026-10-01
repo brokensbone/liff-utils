@@ -1,11 +1,5 @@
 [
   {
-    "title": "Day of the Dead",
-    "url": "https://www.leedsfilm.com/whats-on/day-of-the-dead-bzvd",
-    "minutes": 541,
-    "reason": "Inferred from final advertised film Ghost in the Cell ending at 22:16"
-  },
-  {
     "title": "Documentary Short Film Panorama: City Variations",
     "url": "https://www.leedsfilm.com/whats-on/documentary-short-film-panorama-city-variations-1dlr",
     "minutes": 98,
@@ -148,11 +142,5 @@
     "url": "https://www.leedsfilm.com/whats-on/liff-shorts-2026-the-award-winners-d3v9",
     "minutes": 120,
     "reason": "Provisional estimate within the shortest same-room gap before the next screening"
-  },
-  {
-    "title": "Night of the Dead",
-    "url": "https://www.leedsfilm.com/whats-on/night-of-the-dead-jqly",
-    "minutes": 450,
-    "reason": "Provisional estimate: four advertised features total 354 minutes and listed shorts total 59 minutes, plus 37 minutes for breaks"
   }
 ]

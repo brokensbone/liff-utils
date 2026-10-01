@@ -88,10 +88,17 @@ class TestScrape(unittest.TestCase):
         <div class="location">Vue in the Light, Leeds</div><div class="venue">Screen 11</div>
         """
         review = []
-        row = json.loads(scrape.parse_film(html, "https://example.com/shorts", review)[0][6:])
+        row = json.loads(scrape.parse_film(html, "https://example.com/shorts", review, marker="NOTD")[0][6:])
         self.assertEqual((row["start"], row["end"]), ("2026-10-31 13:15", "2026-10-31 13:45"))
         self.assertEqual(row["stage"], "Vue in the Light, Screen 11")
+        self.assertEqual(row["act"], "NOTD: Short Film Competition")
         self.assertEqual(review[0]["minutes"], 30)
+
+    def test_marathon_config_labels_four_films_in_each_group(self):
+        parents, labels = scrape.marathon_labels(YEAR_DIR)
+        self.assertEqual(len(parents), 2)
+        self.assertEqual(list(labels.values()).count("DOTD"), 4)
+        self.assertEqual(list(labels.values()).count("NOTD"), 4)
 
     def test_explicit_runtime_override_is_recorded_for_review(self):
         html = """
