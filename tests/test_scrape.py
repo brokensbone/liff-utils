@@ -5,8 +5,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 import requests
-import scrape
 
+import scrape
 
 ROOT = Path(__file__).resolve().parents[1]
 YEAR_DIR = ROOT / "2026"
@@ -27,20 +27,52 @@ class TestScrape(unittest.TestCase):
         <a class="desc" href="/whats-on/mouse-sbj2"><h3 class="title">Mouse</h3></a>
         """
         entries = scrape.index_entries(html)
-        self.assertEqual(entries, [
-            {"title": "LIFF 2026 Programme Preview", "url": "https://www.leedsfilm.com/whats-on/preview"},
-            {"title": "Mouse", "url": "https://www.leedsfilm.com/whats-on/mouse-sbj2"},
-        ])
+        self.assertEqual(
+            entries,
+            [
+                {
+                    "title": "LIFF 2026 Programme Preview",
+                    "url": "https://www.leedsfilm.com/whats-on/preview",
+                },
+                {
+                    "title": "Mouse",
+                    "url": "https://www.leedsfilm.com/whats-on/mouse-sbj2",
+                },
+            ],
+        )
         films = json.loads((YEAR_DIR / "films.json").read_text())
         self.assertEqual(len(films), 152)
         self.assertEqual(len({item["url"] for item in films}), 152)
-        self.assertNotIn("LIFF 2026 Programme Preview", [item["title"] for item in films])
+        self.assertNotIn(
+            "LIFF 2026 Programme Preview", [item["title"] for item in films]
+        )
 
     def test_three_live_film_pages(self):
         cases = [
-            ("pan-s-labyrinth-20th-anniversary-4k-restoration-7nl8", "Pan's Labyrinth (20th Anniversary 4K Restoration)", 2, "2026-10-29 15:30", "2026-10-29 17:28", "Vue in the Light, Screen 7"),
-            ("iron-boy-n31f", "Iron Boy", 3, "2026-10-29 15:45", "2026-10-29 17:15", "Vue in the Light, Screen 12"),
-            ("mouse-sbj2", "Mouse", 4, "2026-10-29 17:45", "2026-10-29 19:45", "Hyde Park Picture House, Screen 1"),
+            (
+                "pan-s-labyrinth-20th-anniversary-4k-restoration-7nl8",
+                "Pan's Labyrinth (20th Anniversary 4K Restoration)",
+                2,
+                "2026-10-29 15:30",
+                "2026-10-29 17:28",
+                "Vue in the Light, Screen 7",
+            ),
+            (
+                "iron-boy-n31f",
+                "Iron Boy",
+                3,
+                "2026-10-29 15:45",
+                "2026-10-29 17:15",
+                "Vue in the Light, Screen 12",
+            ),
+            (
+                "mouse-sbj2",
+                "Mouse",
+                4,
+                "2026-10-29 17:45",
+                "2026-10-29 19:45",
+                "Hyde Park Picture House, Screen 1",
+            ),
         ]
         for slug, title, count, start, end, venue in cases:
             with self.subTest(title=title):
@@ -53,15 +85,22 @@ class TestScrape(unittest.TestCase):
                 self.assertEqual(rows[0]["stage"], venue)
                 self.assertTrue(rows[0]["blurb"])
                 self.assertTrue(all(row["url"] == url for row in rows))
-        iron_boy = payloads("iron-boy-n31f.html", "https://www.leedsfilm.com/whats-on/iron-boy-n31f")
+        iron_boy = payloads(
+            "iron-boy-n31f.html", "https://www.leedsfilm.com/whats-on/iron-boy-n31f"
+        )
         self.assertEqual(iron_boy[-1]["stage"], "Cottage Road Cinema")
 
     @patch("scrape.fetch")
     def test_retrieve_film_uses_cache(self, fetch):
         with sqlite3.connect(":memory:") as db:
             db.execute("CREATE TABLE cache (url TEXT PRIMARY KEY, html BLOB)")
-            db.execute("INSERT INTO cache VALUES (?, ?)", ("https://example.com/film", b"saved"))
-            self.assertEqual(scrape.retrieve_film(db, "https://example.com/film"), b"saved")
+            db.execute(
+                "INSERT INTO cache VALUES (?, ?)",
+                ("https://example.com/film", b"saved"),
+            )
+            self.assertEqual(
+                scrape.retrieve_film(db, "https://example.com/film"), b"saved"
+            )
         fetch.assert_not_called()
 
     @patch("scrape.time.sleep")
@@ -88,8 +127,14 @@ class TestScrape(unittest.TestCase):
         <div class="location">Vue in the Light, Leeds</div><div class="venue">Screen 11</div>
         """
         review = []
-        row = json.loads(scrape.parse_film(html, "https://example.com/shorts", review, marker="NOTD")[0][6:])
-        self.assertEqual((row["start"], row["end"]), ("2026-10-31 13:15", "2026-10-31 13:45"))
+        row = json.loads(
+            scrape.parse_film(
+                html, "https://example.com/shorts", review, marker="NOTD"
+            )[0][6:]
+        )
+        self.assertEqual(
+            (row["start"], row["end"]), ("2026-10-31 13:15", "2026-10-31 13:45")
+        )
         self.assertEqual(row["stage"], "Vue in the Light, Screen 11")
         self.assertEqual(row["act"], "NOTD: Short Film Competition")
         self.assertEqual(review[0]["minutes"], 30)
@@ -108,9 +153,14 @@ class TestScrape(unittest.TestCase):
         """
         url = "https://example.com/event"
         review = []
-        row = json.loads(scrape.parse_film(
-            html, url, review, {url: {"minutes": 90, "reason": "Provisional estimate"}}
-        )[0][6:])
+        row = json.loads(
+            scrape.parse_film(
+                html,
+                url,
+                review,
+                {url: {"minutes": 90, "reason": "Provisional estimate"}},
+            )[0][6:]
+        )
         self.assertEqual(row["end"], "2026-11-04 19:30")
         self.assertEqual(review[0]["reason"], "Provisional estimate")
 
