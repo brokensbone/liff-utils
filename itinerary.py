@@ -1,0 +1,173 @@
+"""Find the largest clash-free set of highlighted Clashfinder films.
+
+Usage: uv run python itinerary.py ~/Downloads/liff26-edsalkeld.json
+"""
+
+import argparse
+import json
+import re
+from collections import defaultdict
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from pathlib import Path
+
+from ortools.sat.python import cp_model
+
+
+@dataclass(frozen=True)
+class Screening:
+    film: str
+    title: str
+    start: datetime
+    end: datetime
+    venue: str
+    url: str
+
+
+def load_highlights(path: Path) -> list[Screening]:
+    data = json.loads(path.read_text())
+    highlighted = set(data["gets"]["hl1"])
+    screenings = []
+    found = set()
+    for location in data["locations"]:
+        for event in location["events"]:
+            film = event["short"].split("(", 1)[0]
+            if film not in highlighted or "1" not in str(event.get("hls", "")):
+                continue
+            start = datetime.fromisoformat(event["start"])
+            end = datetime.fromisoformat(event["end"])
+            if end <= start:
+                raise ValueError(
+                    f"Invalid time range for {event['name']}: {start}–{end}"
+                )
+            found.add(film)
+            screenings.append(
+                Screening(
+                    film=event["url"],
+                    title=event["name"],
+                    start=start,
+                    end=end,
+                    venue=location["name"],
+                    url=event["url"],
+                )
+            )
+    if missing := highlighted - found:
+        raise ValueError(f"Highlighted films have no screenings: {sorted(missing)}")
+    return sorted(screenings, key=lambda item: (item.start, item.title, item.venue))
+
+
+def incompatible(a: Screening, b: Screening, transfer: timedelta) -> bool:
+    if a.start < b.end and b.start < a.end:
+        return True
+    if venue_building(a.venue) == venue_building(b.venue):
+        return False
+    return (a.end <= b.start and b.start - a.end < transfer) or (
+        b.end <= a.start and a.start - b.end < transfer
+    )
+
+
+def venue_building(venue: str) -> str:
+    return re.sub(r",? Screen \d+$", "", venue)
+
+
+def solve(screenings: list[Screening], transfer_minutes: int = 0) -> list[Screening]:
+    if transfer_minutes < 0:
+        raise ValueError("Transfer minutes must be nonnegative")
+    model = cp_model.CpModel()
+    picks = [model.new_bool_var(f"screening_{i}") for i in range(len(screenings))]
+    by_film = defaultdict(list)
+    for i, screening in enumerate(screenings):
+        by_film[screening.film].append(picks[i])
+    for choices in by_film.values():
+        model.add(sum(choices) <= 1)
+    transfer = timedelta(minutes=transfer_minutes)
+    for i, first in enumerate(screenings):
+        for j in range(i + 1, len(screenings)):
+            second = screenings[j]
+            if incompatible(first, second, transfer):
+                model.add(picks[i] + picks[j] <= 1)
+    model.maximize(sum(picks))
+    solver = cp_model.CpSolver()
+    status = solver.solve(model)
+    if status != cp_model.OPTIMAL:
+        raise RuntimeError(
+            f"Could not prove optimal schedule: {solver.status_name(status)}"
+        )
+    return [
+        screening for i, screening in enumerate(screenings) if solver.value(picks[i])
+    ]
+
+
+def render(
+    screenings: list[Screening], selected: list[Screening], transfer_minutes: int
+) -> str:
+    chosen = {screening.film for screening in selected}
+    by_film = {screening.film: screening.title for screening in screenings}
+    lines = [
+        f"# Highlighted film itinerary: {len(chosen)} of {len(by_film)} films",
+        "",
+        f"Selected {len(selected)} screenings from {len(screenings)} highlighted showings.",
+        "Times are as exported by Clashfinder. Availability is not accounted for.",
+        f"Minimum transfer between cinema buildings: {transfer_minutes} minutes.",
+        "",
+    ]
+    by_day = defaultdict(list)
+    for screening in selected:
+        by_day[screening.start.date()].append(screening)
+    for day, events in sorted(by_day.items()):
+        lines += [f"## {day:%A %-d %B}", ""]
+        for event in events:
+            lines.append(
+                f"- {event.start:%H:%M}–{event.end:%H:%M} "
+                f"[{event.title}]({event.url}) — {event.venue}"
+            )
+        lines.append("")
+    tight = []
+    for events in by_day.values():
+        for first, second in zip(events, events[1:], strict=False):
+            gap = second.start - first.end
+            if venue_building(first.venue) != venue_building(
+                second.venue
+            ) and gap < timedelta(minutes=30):
+                tight.append((first, second, int(gap.total_seconds() / 60)))
+    if tight:
+        lines += ["## Tight transfers between buildings", ""]
+        lines += [
+            f"- {first.start:%a %-d %b}: {first.title} → {second.title}: {minutes} minutes"
+            for first, second, minutes in tight
+        ]
+        lines.append("")
+    missing = sorted(set(by_film) - chosen, key=lambda film: by_film[film])
+    lines += [f"## Unscheduled highlights ({len(missing)})", ""]
+    if missing:
+        lines += [f"- [{by_film[film]}]({film})" for film in missing]
+    else:
+        lines.append("None.")
+    return "\n".join(lines) + "\n"
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "highlights", type=Path, help="Clashfinder highlighted JSON export"
+    )
+    parser.add_argument("--transfer-minutes", type=int, default=0)
+    parser.add_argument(
+        "--output", type=Path, help="Write the Markdown plan to this path"
+    )
+    args = parser.parse_args()
+    screenings = load_highlights(args.highlights)
+    selected = solve(screenings, args.transfer_minutes)
+    result = render(screenings, selected, args.transfer_minutes)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(result)
+        print(
+            f"Wrote {args.output}: {len(selected)} of {len({s.film for s in screenings})} films"
+        )
+    else:
+        print(result, end="")
+
+
+if __name__ == "__main__":
+    main()
