@@ -1,5 +1,6 @@
 import json
 import sqlite3
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -46,6 +47,21 @@ class TestScrape(unittest.TestCase):
         self.assertNotIn(
             "LIFF 2026 Programme Preview", [item["title"] for item in films]
         )
+
+    def test_index_excludes_known_nonfilm_events(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_dir = Path(directory)
+            (output_dir / "allfilm-1.html").write_text(
+                '<a class="desc" href="/film"><h3 class="title">Film</h3></a>'
+                '<a class="desc" href="/quiz"><h3 class="title">Quiz</h3></a>'
+            )
+            (output_dir / "index-exclusions.json").write_text(
+                json.dumps({"https://www.leedsfilm.com/quiz": "Quiz event"})
+            )
+            self.assertEqual(
+                scrape.get_index(output_dir, offline=True),
+                [{"title": "Film", "url": "https://www.leedsfilm.com/film"}],
+            )
 
     def test_three_live_film_pages(self):
         cases = [
@@ -138,6 +154,24 @@ class TestScrape(unittest.TestCase):
         self.assertEqual(row["stage"], "Vue in the Light, Screen 11")
         self.assertEqual(row["act"], "NOTD: Short Film Competition")
         self.assertEqual(review[0]["minutes"], 30)
+
+    def test_programme_total_takes_precedence_over_listed_shorts(self):
+        html = """
+        <div class="desc"><h1>Documentary Short Film Panorama</h1></div>
+        <div class="extraInfo">Running time: 0</div>
+        <div class="desc1">
+          <p>Total running time of programme: 98 minutes.</p>
+          <p>First short | 24 mins</p><p>Second short | 74 mins</p>
+        </div>
+        <div class="top-date"><span class="start">Tue 3 Nov</span><span class="time">- 18:00</span></div>
+        <div class="location">Mill Hill Chapel, Leeds</div><div class="venue">Main Sanctuary</div>
+        """
+        review = []
+        row = json.loads(
+            scrape.parse_film(html, "https://example.com/shorts", review)[0][6:]
+        )
+        self.assertEqual(row["end"], "2026-11-03 19:38")
+        self.assertEqual(review, [])
 
     def test_marathon_config_labels_four_films_in_each_group(self):
         parents, labels = scrape.marathon_labels(YEAR_DIR)
