@@ -69,9 +69,18 @@ def get_index(output_dir, clean=False, offline=False):
             break
     else:
         raise RuntimeError("Index exceeded 99 pages")
+    exclusions_path = output_dir / "index-exclusions.json"
+    excluded_urls = (
+        set(json.loads(exclusions_path.read_text(encoding="utf-8")))
+        if exclusions_path.exists()
+        else set()
+    )
     # The programme preview is an event, not a film.
     films = [
-        entry for entry in entries if entry["title"] != f"LIFF {YEAR} Programme Preview"
+        entry
+        for entry in entries
+        if entry["title"] != f"LIFF {YEAR} Programme Preview"
+        and entry["url"] not in excluded_urls
     ]
     (output_dir / "films.json").write_text(
         json.dumps(films, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -159,8 +168,19 @@ def parse_film(html, url, review=None, runtime_overrides=None, marker=None):
         else None
     )
     description = page.select_one("div.desc1")
-    if runtime:
+    programme_runtime = (
+        re.search(
+            r"\btotal running time of programme\s*:?\s*(\d+)\s*(?:mins|minutes)\b",
+            description.get_text(" ", strip=True),
+            re.I,
+        )
+        if description
+        else None
+    )
+    if runtime and int(runtime.group(1)) > 0:
         minutes = int(runtime.group(1))
+    elif programme_runtime and int(programme_runtime.group(1)) > 0:
+        minutes = int(programme_runtime.group(1))
     else:
         override = (runtime_overrides or {}).get(url)
         if override:
