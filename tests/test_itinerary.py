@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from itinerary import Screening, incompatible, load_highlights, solve
+from itinerary import PlanningRules, Screening, incompatible, load_highlights, solve
 
 
 def screening(title, start, end, venue="Vue in the Light, Screen 7", film=None):
@@ -35,6 +35,26 @@ def test_transfer_applies_between_buildings_but_not_screens():
     cottage = screening("C", "11:05", "12:00", "Cottage Road Cinema")
     assert not incompatible(vue_7, vue_12, timedelta(minutes=20))
     assert incompatible(vue_7, cottage, timedelta(minutes=20))
+
+
+def test_unavailability_and_hyde_park_transfer_rules():
+    rules = PlanningRules(
+        unavailable=((datetime(2026, 11, 1, 9, 0), datetime(2026, 11, 1, 10, 30)),),
+        venue_transfer_minutes={"Hyde Park Picture House": 60},
+    )
+    early = screening("A", "10:00", "11:00")
+    late = screening("A", "12:00", "13:00")
+    hyde = screening("B", "13:30", "14:30", "Hyde Park Picture House, Screen 1")
+    hyde_later = screening("B", "14:00", "15:00", "Hyde Park Picture House, Screen 1")
+    assert not incompatible(late, hyde, timedelta(minutes=20))
+    assert incompatible(late, hyde, timedelta(minutes=20), rules.venue_transfer_minutes)
+    chosen = solve([early, late, hyde, hyde_later], 20, rules)
+    assert {item.title for item in chosen} == {
+        "A",
+        "B",
+    }
+    assert next(item for item in chosen if item.title == "B").start.hour == 14
+    assert solve([early], 20, rules) == []
 
 
 def test_only_highlighted_events_are_loaded(tmp_path):

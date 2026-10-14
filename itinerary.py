@@ -7,7 +7,7 @@ import argparse
 import json
 import re
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -22,6 +22,27 @@ class Screening:
     end: datetime
     venue: str
     url: str
+
+
+@dataclass(frozen=True)
+class PlanningRules:
+    unavailable: tuple[tuple[datetime, datetime], ...] = ()
+    venue_transfer_minutes: dict[str, int] = field(default_factory=dict)
+
+
+def load_rules(path: Path) -> PlanningRules:
+    data = json.loads(path.read_text())
+    unavailable = []
+    for entry in data.get("unavailable", []):
+        start = datetime.fromisoformat(entry["start"])
+        end = datetime.fromisoformat(entry["end"])
+        if end <= start:
+            raise ValueError(f"Invalid unavailable interval: {start}–{end}")
+        unavailable.append((start, end))
+    transfer = data.get("venue_transfer_minutes", {})
+    if any(minutes < 0 for minutes in transfer.values()):
+        raise ValueError("Venue transfer minutes must be nonnegative")
+    return PlanningRules(tuple(unavailable), transfer)
 
 
 def load_highlights(path: Path) -> list[Screening]:
@@ -56,11 +77,24 @@ def load_highlights(path: Path) -> list[Screening]:
     return sorted(screenings, key=lambda item: (item.start, item.title, item.venue))
 
 
-def incompatible(a: Screening, b: Screening, transfer: timedelta) -> bool:
+def incompatible(
+    a: Screening,
+    b: Screening,
+    transfer: timedelta,
+    venue_transfer_minutes: dict[str, int] | None = None,
+) -> bool:
     if a.start < b.end and b.start < a.end:
         return True
-    if venue_building(a.venue) == venue_building(b.venue):
+    first_building = venue_building(a.venue)
+    second_building = venue_building(b.venue)
+    if first_building == second_building:
         return False
+    venue_transfer_minutes = venue_transfer_minutes or {}
+    transfer = max(
+        transfer,
+        timedelta(minutes=venue_transfer_minutes.get(first_building, 0)),
+        timedelta(minutes=venue_transfer_minutes.get(second_building, 0)),
+    )
     return (a.end <= b.start and b.start - a.end < transfer) or (
         b.end <= a.start and a.start - b.end < transfer
     )
@@ -70,21 +104,31 @@ def venue_building(venue: str) -> str:
     return re.sub(r",? Screen \d+$", "", venue)
 
 
-def solve(screenings: list[Screening], transfer_minutes: int = 0) -> list[Screening]:
+def solve(
+    screenings: list[Screening],
+    transfer_minutes: int = 0,
+    rules: PlanningRules | None = None,
+) -> list[Screening]:
     if transfer_minutes < 0:
         raise ValueError("Transfer minutes must be nonnegative")
+    rules = rules or PlanningRules()
     model = cp_model.CpModel()
     picks = [model.new_bool_var(f"screening_{i}") for i in range(len(screenings))]
     by_film = defaultdict(list)
     for i, screening in enumerate(screenings):
         by_film[screening.film].append(picks[i])
+        if any(
+            screening.start < end and start < screening.end
+            for start, end in rules.unavailable
+        ):
+            model.add(picks[i] == 0)
     for choices in by_film.values():
         model.add(sum(choices) <= 1)
     transfer = timedelta(minutes=transfer_minutes)
     for i, first in enumerate(screenings):
         for j in range(i + 1, len(screenings)):
             second = screenings[j]
-            if incompatible(first, second, transfer):
+            if incompatible(first, second, transfer, rules.venue_transfer_minutes):
                 model.add(picks[i] + picks[j] <= 1)
     model.maximize(sum(picks))
     solver = cp_model.CpSolver()
@@ -99,18 +143,34 @@ def solve(screenings: list[Screening], transfer_minutes: int = 0) -> list[Screen
 
 
 def render(
-    screenings: list[Screening], selected: list[Screening], transfer_minutes: int
+    screenings: list[Screening],
+    selected: list[Screening],
+    transfer_minutes: int,
+    rules: PlanningRules | None = None,
 ) -> str:
+    rules = rules or PlanningRules()
     chosen = {screening.film for screening in selected}
     by_film = {screening.film: screening.title for screening in screenings}
     lines = [
         f"# Highlighted film itinerary: {len(chosen)} of {len(by_film)} films",
         "",
         f"Selected {len(selected)} screenings from {len(screenings)} highlighted showings.",
-        "Times are as exported by Clashfinder. Availability is not accounted for.",
+        "Times are as exported by Clashfinder.",
         f"Minimum transfer between cinema buildings: {transfer_minutes} minutes.",
         "",
     ]
+    if rules.unavailable:
+        lines += ["Unavailable:", ""]
+        lines += [
+            f"- {start:%a %-d %b %H:%M}–{end:%H:%M}" for start, end in rules.unavailable
+        ]
+        lines.append("")
+    if rules.venue_transfer_minutes:
+        lines += [
+            f"Transfer to/from {venue}: at least {minutes} minutes."
+            for venue, minutes in rules.venue_transfer_minutes.items()
+        ]
+        lines.append("")
     by_day = defaultdict(list)
     for screening in selected:
         by_day[screening.start.date()].append(screening)
@@ -152,13 +212,15 @@ def main() -> None:
         "highlights", type=Path, help="Clashfinder highlighted JSON export"
     )
     parser.add_argument("--transfer-minutes", type=int, default=0)
+    parser.add_argument("--rules", type=Path, help="JSON availability and venue rules")
     parser.add_argument(
         "--output", type=Path, help="Write the Markdown plan to this path"
     )
     args = parser.parse_args()
     screenings = load_highlights(args.highlights)
-    selected = solve(screenings, args.transfer_minutes)
-    result = render(screenings, selected, args.transfer_minutes)
+    rules = load_rules(args.rules) if args.rules else PlanningRules()
+    selected = solve(screenings, args.transfer_minutes, rules)
+    result = render(screenings, selected, args.transfer_minutes, rules)
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(result)
