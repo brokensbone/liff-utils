@@ -1,4 +1,4 @@
-"""Find the largest clash-free set of highlighted Clashfinder films.
+"""Find the highest-scoring clash-free set of highlighted Clashfinder films.
 
 Usage: uv run python itinerary.py ~/Downloads/liff26-edsalkeld.json
 """
@@ -22,6 +22,7 @@ class Screening:
     end: datetime
     venue: str
     url: str
+    points: int = 1
 
 
 @dataclass(frozen=True)
@@ -47,33 +48,43 @@ def load_rules(path: Path) -> PlanningRules:
 
 def load_highlights(path: Path) -> list[Screening]:
     data = json.loads(path.read_text())
-    highlighted = set(data["gets"]["hl1"])
     screenings = []
-    found = set()
+    points_by_film = {}
     for location in data["locations"]:
         for event in location["events"]:
-            film = event["short"].split("(", 1)[0]
-            if film not in highlighted or "1" not in str(event.get("hls", "")):
+            highlight = str(event.get("hls", ""))
+            if not highlight or highlight == "0":
                 continue
+            if highlight not in {"1", "2", "3"}:
+                raise ValueError(
+                    f"Unexpected highlight set for {event['name']}: {highlight}"
+                )
+            if f"hl{highlight}" not in data["gets"]:
+                raise ValueError(f"Highlight set hl{highlight} is missing from export")
+            points = int(highlight)
             start = datetime.fromisoformat(event["start"])
             end = datetime.fromisoformat(event["end"])
             if end <= start:
                 raise ValueError(
                     f"Invalid time range for {event['name']}: {start}–{end}"
                 )
-            found.add(film)
+            film = event["url"]
+            if film in points_by_film and points_by_film[film] != points:
+                raise ValueError(f"Conflicting points for {event['name']}")
+            points_by_film[film] = points
             screenings.append(
                 Screening(
-                    film=event["url"],
+                    film=film,
                     title=event["name"],
                     start=start,
                     end=end,
                     venue=location["name"],
-                    url=event["url"],
+                    url=film,
+                    points=points,
                 )
             )
-    if missing := highlighted - found:
-        raise ValueError(f"Highlighted films have no screenings: {sorted(missing)}")
+    if not screenings:
+        raise ValueError("No highlighted screenings found")
     return sorted(screenings, key=lambda item: (item.start, item.title, item.venue))
 
 
@@ -130,7 +141,14 @@ def solve(
             second = screenings[j]
             if incompatible(first, second, transfer, rules.venue_transfer_minutes):
                 model.add(picks[i] + picks[j] <= 1)
-    model.maximize(sum(picks))
+    # One extra film cannot outweigh one point, even in a tie between many films.
+    point_multiplier = len(by_film) + 1
+    model.maximize(
+        sum(
+            (screening.points * point_multiplier + 1) * pick
+            for screening, pick in zip(screenings, picks, strict=True)
+        )
+    )
     solver = cp_model.CpSolver()
     status = solver.solve(model)
     if status != cp_model.OPTIMAL:
@@ -151,10 +169,13 @@ def render(
     rules = rules or PlanningRules()
     chosen = {screening.film for screening in selected}
     by_film = {screening.film: screening.title for screening in screenings}
+    by_points = {screening.film: screening.points for screening in screenings}
+    earned_points = sum(screening.points for screening in selected)
+    possible_points = sum(by_points.values())
     lines = [
-        f"# Highlighted film itinerary: {len(chosen)} of {len(by_film)} films",
+        f"# Highlighted film itinerary: {earned_points} of {possible_points} points",
         "",
-        f"Selected {len(selected)} screenings from {len(screenings)} highlighted showings.",
+        f"Selected {len(chosen)} of {len(by_film)} films from {len(screenings)} highlighted showings.",
         "Times are as exported by Clashfinder.",
         f"Minimum transfer between cinema buildings: {transfer_minutes} minutes.",
         "",
@@ -179,7 +200,7 @@ def render(
         for event in events:
             lines.append(
                 f"- {event.start:%H:%M}–{event.end:%H:%M} "
-                f"[{event.title}]({event.url}) — {event.venue}"
+                f"[{event.title}]({event.url}) — {event.venue} ({event.points} pt{'s' if event.points != 1 else ''})"
             )
         lines.append("")
     tight = []
@@ -200,7 +221,10 @@ def render(
     missing = sorted(set(by_film) - chosen, key=lambda film: by_film[film])
     lines += [f"## Unscheduled highlights ({len(missing)})", ""]
     if missing:
-        lines += [f"- [{by_film[film]}]({film})" for film in missing]
+        lines += [
+            f"- [{by_film[film]}]({film}) — {by_points[film]} pt{'s' if by_points[film] != 1 else ''}"
+            for film in missing
+        ]
     else:
         lines.append("None.")
     return "\n".join(lines) + "\n"
@@ -224,8 +248,10 @@ def main() -> None:
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(result)
+        earned_points = sum(screening.points for screening in selected)
         print(
-            f"Wrote {args.output}: {len(selected)} of {len({s.film for s in screenings})} films"
+            f"Wrote {args.output}: {earned_points} points, "
+            f"{len(selected)} of {len({s.film for s in screenings})} films"
         )
     else:
         print(result, end="")

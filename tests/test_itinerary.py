@@ -6,7 +6,9 @@ import pytest
 from itinerary import PlanningRules, Screening, incompatible, load_highlights, solve
 
 
-def screening(title, start, end, venue="Vue in the Light, Screen 7", film=None):
+def screening(
+    title, start, end, venue="Vue in the Light, Screen 7", film=None, points=1
+):
     return Screening(
         film=film or title,
         title=title,
@@ -14,6 +16,7 @@ def screening(title, start, end, venue="Vue in the Light, Screen 7", film=None):
         end=datetime.fromisoformat(f"2026-11-01 {end}"),
         venue=venue,
         url=f"https://example.com/{film or title}",
+        points=points,
     )
 
 
@@ -27,6 +30,15 @@ def test_solver_chooses_repeated_film_showing_that_fits_both_others():
     chosen = solve(screenings)
     assert {item.film for item in chosen} == {"A", "B", "C"}
     assert [item.start.hour for item in chosen if item.film == "B"] == [12]
+
+
+def test_points_win_first_and_film_count_breaks_ties():
+    a = screening("A", "10:00", "12:00", points=3)
+    b = screening("B", "10:00", "11:00")
+    c = screening("C", "11:00", "12:00")
+    assert [item.title for item in solve([a, b, c])] == ["A"]
+    a_tied = screening("A", "10:00", "12:00", points=2)
+    assert {item.title for item in solve([a_tied, b, c])} == {"B", "C"}
 
 
 def test_transfer_applies_between_buildings_but_not_screens():
@@ -90,6 +102,37 @@ def test_only_highlighted_events_are_loaded(tmp_path):
         )
     )
     assert [item.title for item in load_highlights(path)] == ["Film 1"]
-    with pytest.raises(ValueError, match="Highlighted films have no screenings"):
+    with pytest.raises(ValueError, match="No highlighted screenings found"):
         path.write_text(path.read_text().replace('"hls": "1"', '"hls": ""'))
         load_highlights(path)
+
+
+def test_three_highlight_sets_become_points(tmp_path):
+    path = tmp_path / "highlights.json"
+    path.write_text(
+        json.dumps(
+            {
+                "gets": {"hl1": [], "hl2": [], "hl3": []},
+                "locations": [
+                    {
+                        "name": "Vue in the Light, Screen 7",
+                        "events": [
+                            {
+                                "name": f"Film {points}",
+                                "hls": str(points),
+                                "start": "2026-11-01 10:00",
+                                "end": "2026-11-01 11:00",
+                                "url": f"https://example.com/{points}",
+                            }
+                            for points in (1, 2, 3)
+                        ],
+                    }
+                ],
+            }
+        )
+    )
+    assert {item.title: item.points for item in load_highlights(path)} == {
+        "Film 1": 1,
+        "Film 2": 2,
+        "Film 3": 3,
+    }
