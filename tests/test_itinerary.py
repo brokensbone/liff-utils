@@ -65,7 +65,17 @@ def test_transfer_applies_between_buildings_but_not_screens():
     vue_12 = screening("B", "11:05", "12:00", "Vue in the Light, Screen 12")
     cottage = screening("C", "11:05", "12:00", "Cottage Road Cinema")
     assert not incompatible(vue_7, vue_12, timedelta(minutes=20))
+    assert incompatible(
+        vue_7, vue_12, timedelta(minutes=20), minimum_gap=timedelta(minutes=20)
+    )
     assert incompatible(vue_7, cottage, timedelta(minutes=20))
+
+
+def test_solver_enforces_minimum_gap_within_one_cinema():
+    first = screening("A", "18:00", "19:31", "Vue in the Light, Screen 7")
+    second = screening("B", "19:45", "21:00", "Vue in the Light, Screen 12")
+    assert len(solve([first, second], 20)) == 2
+    assert len(solve([first, second], 20, PlanningRules(minimum_gap_minutes=20))) == 1
 
 
 def test_unavailability_and_hyde_park_transfer_rules():

@@ -29,6 +29,7 @@ class Screening:
 class PlanningRules:
     unavailable: tuple[tuple[datetime, datetime], ...] = ()
     venue_transfer_minutes: dict[str, int] = field(default_factory=dict)
+    minimum_gap_minutes: int = 0
 
 
 def load_rules(path: Path) -> PlanningRules:
@@ -43,7 +44,10 @@ def load_rules(path: Path) -> PlanningRules:
     transfer = data.get("venue_transfer_minutes", {})
     if any(minutes < 0 for minutes in transfer.values()):
         raise ValueError("Venue transfer minutes must be nonnegative")
-    return PlanningRules(tuple(unavailable), transfer)
+    minimum_gap = data.get("minimum_gap_minutes", 0)
+    if minimum_gap < 0:
+        raise ValueError("Minimum gap minutes must be nonnegative")
+    return PlanningRules(tuple(unavailable), transfer, minimum_gap)
 
 
 def load_highlights(path: Path) -> list[Screening]:
@@ -93,21 +97,23 @@ def incompatible(
     b: Screening,
     transfer: timedelta,
     venue_transfer_minutes: dict[str, int] | None = None,
+    minimum_gap: timedelta = timedelta(),
 ) -> bool:
     if a.start < b.end and b.start < a.end:
         return True
     first_building = venue_building(a.venue)
     second_building = venue_building(b.venue)
-    if first_building == second_building:
-        return False
-    venue_transfer_minutes = venue_transfer_minutes or {}
-    transfer = max(
-        transfer,
-        timedelta(minutes=venue_transfer_minutes.get(first_building, 0)),
-        timedelta(minutes=venue_transfer_minutes.get(second_building, 0)),
-    )
-    return (a.end <= b.start and b.start - a.end < transfer) or (
-        b.end <= a.start and a.start - b.end < transfer
+    required_gap = minimum_gap
+    if first_building != second_building:
+        venue_transfer_minutes = venue_transfer_minutes or {}
+        required_gap = max(
+            required_gap,
+            transfer,
+            timedelta(minutes=venue_transfer_minutes.get(first_building, 0)),
+            timedelta(minutes=venue_transfer_minutes.get(second_building, 0)),
+        )
+    return (a.end <= b.start and b.start - a.end < required_gap) or (
+        b.end <= a.start and a.start - b.end < required_gap
     )
 
 
@@ -139,7 +145,13 @@ def solve(
     for i, first in enumerate(screenings):
         for j in range(i + 1, len(screenings)):
             second = screenings[j]
-            if incompatible(first, second, transfer, rules.venue_transfer_minutes):
+            if incompatible(
+                first,
+                second,
+                transfer,
+                rules.venue_transfer_minutes,
+                timedelta(minutes=rules.minimum_gap_minutes),
+            ):
                 model.add(picks[i] + picks[j] <= 1)
     # One extra film cannot outweigh one point, even in a tie between many films.
     point_multiplier = len(by_film) + 1
@@ -180,6 +192,18 @@ def render(
         f"Minimum transfer between cinema buildings: {transfer_minutes} minutes.",
         "",
     ]
+    if rules.minimum_gap_minutes:
+        lines += [
+            f"Minimum gap between all screenings: {rules.minimum_gap_minutes} minutes.",
+            "",
+        ]
+    same_day_gaps = [
+        int((second.start - first.end).total_seconds() / 60)
+        for first, second in zip(selected, selected[1:], strict=False)
+        if first.start.date() == second.start.date()
+    ]
+    if same_day_gaps:
+        lines += [f"Shortest gap in this plan: {min(same_day_gaps)} minutes.", ""]
     if rules.unavailable:
         lines += ["Unavailable:", ""]
         lines += [
