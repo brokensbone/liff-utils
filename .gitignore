@@ -5,4 +5,5 @@ __pycache__
 errors.log
 html.db
 2026/allfilm-*.html
-2026/itineraries/
+[0-9][0-9][0-9][0-9]/itineraries/
+.DS_Store

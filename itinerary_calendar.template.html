@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LIFF __YEAR__ · itinerary calendar</title>
+  <style>
+    :root { color-scheme: light; --ink:#1c2634; --muted:#637183; --line:#d8dfdf; --paper:#f4f3ed; --card:#fffdf9; --accent:#d35f43; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--paper); color:var(--ink); font:14px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,input { font:inherit; }
+    button { cursor:pointer; }
+    button:focus-visible,input:focus-visible,a:focus-visible { outline:3px solid #237fbd; outline-offset:2px; }
+    .masthead { padding:25px 32px 22px; background:#172335; color:#f9f6ef; display:flex; flex-wrap:wrap; align-items:end; gap:16px 32px; }
+    .eyebrow { margin:0 0 3px; color:#aebdcc; font-size:11px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; }
+    h1 { margin:0; font-size:clamp(25px,3vw,40px); line-height:1.05; letter-spacing:-.04em; }
+    .masthead p:last-child { margin:0 0 3px auto; max-width:440px; color:#cfdae1; }
+    .shell { display:grid; grid-template-columns:300px minmax(0,1fr); align-items:start; }
+    aside { position:sticky; top:0; max-height:100vh; overflow:auto; padding:22px 18px 26px 24px; border-right:1px solid var(--line); background:#fbfaf6; }
+    aside h2 { margin:0 0 12px; font-size:18px; letter-spacing:-.02em; }
+    aside h3 { margin:20px 0 8px; color:var(--muted); font-size:11px; letter-spacing:.13em; text-transform:uppercase; }
+    .aside-note { color:var(--muted); font-size:12px; line-height:1.5; }
+    .quick-actions { display:flex; gap:7px; margin:0 0 17px; }
+    .small-btn { border:1px solid var(--line); border-radius:7px; background:#fff; color:var(--ink); padding:7px 10px; font-size:12px; font-weight:700; }
+    .small-btn:hover { background:#edf2f4; }
+    .plan-list { display:grid; gap:8px; }
+    .plan-option { display:grid; grid-template-columns:17px 12px 1fr; align-items:start; gap:9px; padding:10px; border:1px solid var(--line); border-radius:9px; background:#fff; cursor:pointer; }
+    .plan-option:has(input:checked) { border-color:#8799a6; box-shadow:0 2px 0 #d8e0df; }
+    .plan-option input { margin:2px 0 0; accent-color:#263c50; }
+    .swatch { width:10px; height:10px; border-radius:50%; margin-top:3px; background:var(--plan-color); }
+    .plan-name { font-size:13px; font-weight:750; line-height:1.25; }
+    .plan-meta { display:block; margin-top:3px; color:var(--muted); font-size:11px; }
+    .filter { margin-top:16px; padding:12px; border-radius:9px; background:#edf2f1; }
+    .filter label { display:flex; align-items:center; gap:8px; font-size:12px; font-weight:700; }
+    .filter input[type="checkbox"] { accent-color:#263c50; }
+    .search { width:100%; margin-top:10px; padding:8px 10px; border:1px solid #cbd5d5; border-radius:6px; background:white; }
+    .sidebar-foot { margin:18px 0 0; color:var(--muted); font-size:11px; line-height:1.5; }
+    main { min-width:0; padding:24px 28px 60px; }
+    .toolbar { display:flex; flex-wrap:wrap; align-items:end; justify-content:space-between; gap:14px; margin-bottom:16px; }
+    .toolbar h2 { margin:0; font-size:23px; letter-spacing:-.035em; }
+    .toolbar p { margin:4px 0 0; color:var(--muted); }
+    .view-buttons { display:flex; flex-wrap:wrap; gap:5px; }
+    .view-buttons button { border:1px solid var(--line); background:#fff; color:var(--ink); padding:7px 10px; border-radius:7px; font-size:12px; font-weight:700; }
+    .view-buttons button[aria-pressed="true"] { color:white; background:#263c50; border-color:#263c50; }
+    .empty { padding:50px 20px; border:1px dashed #aab6b8; border-radius:12px; text-align:center; color:var(--muted); background:#fff; }
+    .week { margin:0 0 26px; }
+    .week-title { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:4px 0 10px; }
+    .week-title h3 { margin:0; font-size:17px; letter-spacing:-.02em; }
+    .week-title span { color:var(--muted); font-size:12px; }
+    .week-scroll { overflow-x:auto; border:1px solid var(--line); border-radius:11px; background:#fff; box-shadow:0 4px 18px #1723350a; }
+    .week-grid { display:flex; min-width:100%; }
+    .day { flex:1 0 var(--day-width); min-width:var(--day-width); border-right:1px solid var(--line); }
+    .day:last-child { border-right:0; }
+    .day-head { height:66px; position:sticky; top:0; z-index:3; padding:12px 10px; border-bottom:1px solid var(--line); background:#f8f9f6; }
+    .day-head strong { display:block; font-size:14px; }
+    .day-head small { color:var(--muted); }
+    .timeline { position:relative; background:repeating-linear-gradient(to bottom,transparent 0,transparent 50px,#edf0ef 50px,#edf0ef 51px); }
+    .hour-line { position:absolute; left:0; right:0; height:1px; background:#e5e9e8; pointer-events:none; }
+    .hour-line span { position:absolute; top:2px; left:7px; color:#93a0a7; font-size:10px; }
+    .event { position:absolute; z-index:1; display:block; width:calc(var(--width) - 5px); left:calc(var(--left) + 2px); top:var(--top); height:var(--height); min-height:40px; overflow:hidden; padding:5px 6px 4px 8px; border:1px solid #cad3d5; border-left:4px solid var(--event-color); border-radius:6px; background:#fff; color:var(--ink); text-align:left; box-shadow:0 1px 3px #17233518; }
+    .event:hover { z-index:2; box-shadow:0 4px 12px #17233530; transform:translateY(-1px); }
+    .event-time { display:block; color:#4b5c69; font-size:10px; font-weight:800; letter-spacing:.01em; white-space:nowrap; }
+    .event-title { display:-webkit-box; margin:1px 0 2px; overflow:hidden; -webkit-box-orient:vertical; -webkit-line-clamp:2; font-size:11px; line-height:1.15; font-weight:800; }
+    .event-venue { display:block; overflow:hidden; color:var(--muted); font-size:10px; white-space:nowrap; text-overflow:ellipsis; }
+    .event-dots { display:flex; gap:3px; position:absolute; right:4px; top:5px; padding:2px; background:#ffffffd9; border-radius:4px; }
+    .event-dots i { width:5px; height:5px; border-radius:50%; background:var(--dot); }
+    .selected-empty { padding:25px; color:var(--muted); text-align:center; }
+    dialog { width:min(470px,calc(100vw - 32px)); max-height:85vh; border:0; border-radius:14px; padding:0; box-shadow:0 22px 70px #1522356e; color:var(--ink); }
+    dialog::backdrop { background:#15223599; }
+    .dialog-inner { padding:23px; }
+    .dialog-top { display:flex; justify-content:space-between; gap:12px; }
+    .dialog-top h2 { margin:0; line-height:1.15; letter-spacing:-.025em; }
+    .close { width:30px; height:30px; flex:none; border:1px solid var(--line); border-radius:50%; background:#fff; }
+    .dialog-meta { margin:13px 0 17px; color:var(--muted); }
+    .dialog-plans { display:grid; gap:7px; margin:14px 0 20px; }
+    .dialog-plan { display:flex; justify-content:space-between; gap:10px; align-items:center; padding:8px 10px; border-radius:7px; background:#f3f5f3; font-size:12px; }
+    .dialog-plan b { display:flex; align-items:center; gap:8px; }
+    .film-link { display:inline-block; padding:9px 13px; border-radius:7px; background:#263c50; color:white; text-decoration:none; font-weight:800; }
+    .film-link:hover { background:#38536a; }
+    @media (max-width:800px) {
+      .masthead { padding:20px; }
+      .masthead p:last-child { margin:0; }
+      .shell { display:block; }
+      aside { position:static; max-height:none; padding:16px 20px; border-right:0; border-bottom:1px solid var(--line); }
+      .plan-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); }
+      main { padding:20px 12px 50px; }
+      .week-title { padding-left:5px; padding-right:5px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="masthead">
+    <div><p class="eyebrow">Leeds International Film Festival / __YEAR__</p><h1>Itinerary calendar</h1></div>
+    <p>Compare your proposed schedules. Each card is one screening; coloured dots show which selected plans include it.</p>
+  </header>
+  <div class="shell">
+    <aside>
+      <h2>Show plans</h2>
+      <div class="quick-actions"><button class="small-btn" id="latest-only" type="button">Latest only</button><button class="small-btn" id="select-all" type="button">Select all</button><button class="small-btn" id="clear-all" type="button">Clear</button></div>
+      <div id="plan-controls"></div>
+      <div class="filter">
+        <label><input id="differences-only" type="checkbox"> Only differences between selected plans</label>
+        <input class="search" id="search" type="search" placeholder="Find a film or venue" aria-label="Find a film or venue">
+      </div>
+      <p class="sidebar-foot">Local preview from your Markdown itineraries. To include new or edited files, run <code>python itinerary_calendar.py __YEAR__</code> again, then reopen this page.</p>
+    </aside>
+    <main>
+      <div class="toolbar"><div><h2 id="result-title">Calendar</h2><p id="result-subtitle"></p></div><div class="view-buttons" id="view-buttons" aria-label="Choose week"></div></div>
+      <div id="calendar"></div>
+    </main>
+  </div>
+  <dialog id="details"><div class="dialog-inner"><div class="dialog-top"><h2 id="detail-title"></h2><button class="close" id="close-details" type="button" aria-label="Close details">×</button></div><p class="dialog-meta" id="detail-meta"></p><div class="dialog-plans" id="detail-plans"></div><a class="film-link" id="detail-link" target="_blank" rel="noopener noreferrer">Film page ↗</a></div></dialog>
+  <script id="plan-data" type="application/json">__PLAN_DATA__</script>
+  <script>
+    (() => {
+      "use strict";
+      const data = JSON.parse(document.getElementById("plan-data").textContent);
+      const plans = data.plans;
+      const colors = ["#d35f43", "#3e69af", "#158f83", "#ae7225", "#8258a4", "#bc4e7b", "#5c8893", "#8b7950", "#647d3c", "#a35050"];
+      plans.forEach((plan, index) => { plan.color = colors[index % colors.length]; });
+      const byId = new Map(plans.map(plan => [plan.id, plan]));
+      const storageKey = `liff${data.year}-calendar-plans`;
+      const saved = (() => { try { return JSON.parse(localStorage.getItem(storageKey)); } catch { return null; } })();
+      let selected = new Set(Array.isArray(saved) ? saved.filter(id => byId.has(id)) : [data.default]);
+      let weekView = "all";
+      const search = document.getElementById("search");
+      const differences = document.getElementById("differences-only");
+      const calendar = document.getElementById("calendar");
+      const controls = document.getElementById("plan-controls");
+      const dialog = document.getElementById("details");
+      const fmt = new Intl.DateTimeFormat("en-GB", { weekday:"short", day:"numeric", month:"short", timeZone:"UTC" });
+      const formatDate = date => fmt.format(new Date(`${date}T12:00:00Z`));
+      const minutes = value => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
+      const dayList = [];
+      for (let date = new Date(`${data.start}T12:00:00Z`); date <= new Date(`${data.end}T12:00:00Z`); date.setUTCDate(date.getUTCDate() + 1)) dayList.push(date.toISOString().slice(0, 10));
+      const weeks = [];
+      dayList.forEach(date => {
+        const weekday = new Date(`${date}T12:00:00Z`).getUTCDay();
+        if (!weeks.length || weekday === 1) weeks.push([]);
+        weeks[weeks.length - 1].push(date);
+      });
+      const weekLabels = weeks.map(days => `${formatDate(days[0])} – ${formatDate(days[days.length - 1])}`);
+      const allEnds = plans.flatMap(plan => plan.events.map(event => minutes(event.end) + (event.end_date !== event.date ? 1440 : 0)));
+      const allStarts = plans.flatMap(plan => plan.events.map(event => minutes(event.start)));
+      const firstHour = Math.min(8, Math.floor(Math.min(...allStarts) / 60));
+      const lastHour = Math.max(24, Math.ceil(Math.max(...allEnds) / 60));
+      const pixelsPerMinute = .85;
+      const allEvents = new Map();
+      plans.forEach(plan => plan.events.forEach(event => {
+        const key = [event.url, event.date, event.start, event.venue].join("|");
+        if (!allEvents.has(key)) allEvents.set(key, { ...event, key, memberships:[] });
+        allEvents.get(key).memberships.push({ planId:plan.id, points:event.points });
+      }));
+
+      function el(tag, className, text) {
+        const node = document.createElement(tag);
+        if (className) node.className = className;
+        if (text !== undefined) node.textContent = text;
+        return node;
+      }
+
+      function drawControls() {
+        controls.replaceChildren();
+        for (const family of ["weighted", "earlier"]) {
+          const heading = el("h3", "", family === "weighted" ? "Weighted plans" : "Earlier drafts");
+          controls.append(heading);
+          const list = el("div", "plan-list");
+          plans.filter(plan => plan.family === family).forEach(plan => {
+            const label = el("label", "plan-option");
+            label.style.setProperty("--plan-color", plan.color);
+            const box = el("input");
+            box.type = "checkbox";
+            box.checked = selected.has(plan.id);
+            box.addEventListener("change", () => {
+              if (box.checked) selected.add(plan.id); else selected.delete(plan.id);
+              saveAndRender();
+            });
+            const swatch = el("i", "swatch");
+            const words = el("span", "plan-name", plan.label);
+            words.append(el("small", "plan-meta", `${plan.events.length} screenings · ${plan.file}`));
+            label.append(box, swatch, words);
+            list.append(label);
+          });
+          controls.append(list);
+        }
+      }
+
+      function saveAndRender() {
+        try { localStorage.setItem(storageKey, JSON.stringify([...selected])); } catch { /* local file storage may be disabled */ }
+        drawControls();
+        render();
+      }
+
+      function visibleEvents() {
+        const query = search.value.trim().toLocaleLowerCase();
+        const onlyDiff = differences.checked && selected.size > 1;
+        return [...allEvents.values()].filter(event => {
+          const count = event.memberships.filter(member => selected.has(member.planId)).length;
+          return count && (!onlyDiff || count < selected.size) &&
+            (!query || `${event.title} ${event.venue}`.toLocaleLowerCase().includes(query));
+        });
+      }
+
+      function layOut(events) {
+        events.sort((a, b) => minutes(a.start) - minutes(b.start) || minutes(a.end) - minutes(b.end));
+        let cluster = [], clusterEnd = -1, maxLanes = 1;
+        const finish = () => {
+          if (!cluster.length) return;
+          const lanes = [];
+          cluster.forEach(event => {
+            let lane = lanes.findIndex(end => end <= minutes(event.start));
+            if (lane < 0) { lane = lanes.length; lanes.push(0); }
+            lanes[lane] = minutes(event.end) + (event.end_date !== event.date ? 1440 : 0);
+            event.lane = lane;
+          });
+          cluster.forEach(event => { event.lanes = lanes.length; });
+          maxLanes = Math.max(maxLanes, lanes.length);
+        };
+        events.forEach(event => {
+          if (cluster.length && minutes(event.start) >= clusterEnd) { finish(); cluster = []; clusterEnd = -1; }
+          cluster.push(event);
+          clusterEnd = Math.max(clusterEnd, minutes(event.end) + (event.end_date !== event.date ? 1440 : 0));
+        });
+        finish();
+        return maxLanes;
+      }
+
+      function showDetails(event) {
+        document.getElementById("detail-title").textContent = event.title;
+        document.getElementById("detail-meta").textContent = `${formatDate(event.date)} · ${event.start}–${event.end} · ${event.venue}`;
+        const list = document.getElementById("detail-plans");
+        list.replaceChildren();
+        event.memberships.filter(member => selected.has(member.planId)).forEach(member => {
+          const plan = byId.get(member.planId);
+          const row = el("div", "dialog-plan");
+          const name = el("b", "", plan.label);
+          const dot = el("i", "swatch");
+          dot.style.setProperty("--plan-color", plan.color);
+          name.prepend(dot);
+          row.append(name, el("span", "", member.points == null ? "Unweighted" : `${member.points} pt${member.points === 1 ? "" : "s"}`));
+          list.append(row);
+        });
+        document.getElementById("detail-link").href = event.url;
+        dialog.showModal();
+      }
+
+      function drawDay(date, allVisible) {
+        const events = allVisible.filter(event => event.date === date).map(event => ({ ...event }));
+        const laneCount = layOut(events);
+        const day = el("section", "day");
+        day.style.setProperty("--day-width", `${Math.max(170, laneCount * 132)}px`);
+        const header = el("div", "day-head");
+        header.append(el("strong", "", formatDate(date)), el("small", "", `${events.length} screening${events.length === 1 ? "" : "s"}`));
+        const timeline = el("div", "timeline");
+        timeline.style.height = `${(lastHour - firstHour) * 60 * pixelsPerMinute}px`;
+        for (let hour = firstHour; hour <= lastHour; hour++) {
+          const line = el("div", "hour-line");
+          line.style.top = `${(hour - firstHour) * 60 * pixelsPerMinute}px`;
+          line.append(el("span", "", `${String(hour % 24).padStart(2, "0")}:00`));
+          timeline.append(line);
+        }
+        events.forEach(event => {
+          const members = event.memberships.filter(member => selected.has(member.planId));
+          const card = el("button", "event");
+          card.type = "button";
+          const endMinute = minutes(event.end) + (event.end_date !== event.date ? 1440 : 0);
+          card.style.setProperty("--top", `${(minutes(event.start) - firstHour * 60) * pixelsPerMinute}px`);
+          card.style.setProperty("--height", `${Math.max(40, (endMinute - minutes(event.start)) * pixelsPerMinute - 3)}px`);
+          card.style.setProperty("--width", `${100 / event.lanes}%`);
+          card.style.setProperty("--left", `${event.lane * 100 / event.lanes}%`);
+          card.style.setProperty("--event-color", byId.get(members[0].planId).color);
+          card.setAttribute("aria-label", `${event.title}, ${event.start} to ${event.end}, ${event.venue}, in ${members.length} selected plan${members.length === 1 ? "" : "s"}`);
+          card.append(el("span", "event-time", `${event.start}–${event.end}`), el("span", "event-title", event.title), el("span", "event-venue", event.venue));
+          if (members.length > 1) {
+            const dots = el("span", "event-dots");
+            members.forEach(member => { const dot = el("i"); dot.style.setProperty("--dot", byId.get(member.planId).color); dots.append(dot); });
+            card.append(dots);
+          }
+          card.addEventListener("click", () => showDetails(event));
+          timeline.append(card);
+        });
+        day.append(header, timeline);
+        return day;
+      }
+
+      function render() {
+        const visible = visibleEvents();
+        const unionCount = [...allEvents.values()].filter(event => event.memberships.some(member => selected.has(member.planId))).length;
+        document.getElementById("result-title").textContent = selected.size === 1 ? byId.get([...selected][0]).label : "Combined calendar";
+        document.getElementById("result-subtitle").textContent = `${selected.size} plan${selected.size === 1 ? "" : "s"} selected · ${unionCount} distinct screenings${visible.length !== unionCount ? ` · ${visible.length} shown` : ""}`;
+        differences.disabled = selected.size < 2;
+        const viewButtons = document.getElementById("view-buttons");
+        viewButtons.replaceChildren();
+        [["all", "All weeks"], ...weekLabels.map((label, index) => [String(index), label])].forEach(([id, label]) => {
+          const button = el("button", "", label);
+          button.type = "button";
+          button.setAttribute("aria-pressed", String(weekView === id));
+          button.addEventListener("click", () => { weekView = id; render(); });
+          viewButtons.append(button);
+        });
+        calendar.replaceChildren();
+        if (!selected.size) { calendar.append(el("div", "empty", "Select an itinerary to see its screenings.")); return; }
+        weeks.forEach((days, index) => {
+          if (weekView !== "all" && weekView !== String(index)) return;
+          const section = el("section", "week");
+          const heading = el("div", "week-title");
+          heading.append(el("h3", "", weekLabels[index]), el("span", "", `${visible.filter(event => days.includes(event.date)).length} screenings shown`));
+          const scroll = el("div", "week-scroll");
+          const grid = el("div", "week-grid");
+          days.forEach(date => grid.append(drawDay(date, visible)));
+          scroll.append(grid);
+          section.append(heading, scroll);
+          calendar.append(section);
+        });
+      }
+
+      document.getElementById("latest-only").addEventListener("click", () => { selected = new Set([data.default]); saveAndRender(); });
+      document.getElementById("select-all").addEventListener("click", () => { selected = new Set(plans.map(plan => plan.id)); saveAndRender(); });
+      document.getElementById("clear-all").addEventListener("click", () => { selected = new Set(); saveAndRender(); });
+      document.getElementById("close-details").addEventListener("click", () => dialog.close());
+      search.addEventListener("input", render);
+      differences.addEventListener("change", render);
+      drawControls();
+      render();
+    })();
+  </script>
+</body>
+</html>

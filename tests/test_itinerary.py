@@ -6,7 +6,9 @@ import pytest
 from itinerary import (
     PlanningRules,
     Screening,
+    apply_preferred_showings,
     incompatible,
+    load_extra_screenings,
     load_highlights,
     render,
     solve,
@@ -76,6 +78,36 @@ def test_solver_enforces_minimum_gap_within_one_cinema():
     second = screening("B", "19:45", "21:00", "Vue in the Light, Screen 12")
     assert len(solve([first, second], 20)) == 2
     assert len(solve([first, second], 20, PlanningRules(minimum_gap_minutes=20))) == 1
+
+
+def test_solver_limits_screenings_per_day():
+    films = [
+        screening("A", "10:00", "11:00", points=1),
+        screening("B", "12:00", "13:00", points=3),
+        screening("C", "14:00", "15:00", points=2),
+    ]
+    chosen = solve(films, rules=PlanningRules(max_screenings_per_day=2))
+    assert {item.title for item in chosen} == {"B", "C"}
+
+
+def test_solver_limits_total_films_while_maximizing_points():
+    films = [
+        screening("A", "10:00", "11:00", points=1),
+        screening("B", "12:00", "13:00", points=3),
+        screening("C", "14:00", "15:00", points=2),
+    ]
+    chosen = solve(films, rules=PlanningRules(max_films=2))
+    assert {item.title for item in chosen} == {"B", "C"}
+
+
+def test_solver_excludes_named_venue():
+    bradford = screening("A", "10:00", "11:00", "Pictureville, Bradford Screen 1")
+    leeds = screening("B", "12:00", "13:00")
+    chosen = solve(
+        [bradford, leeds],
+        rules=PlanningRules(excluded_venues=("Pictureville, Bradford",)),
+    )
+    assert [item.title for item in chosen] == ["B"]
 
 
 def test_unavailability_and_hyde_park_transfer_rules():
@@ -165,3 +197,76 @@ def test_three_highlight_sets_become_points(tmp_path):
         "Film 2": 2,
         "Film 3": 3,
     }
+    assert {
+        item.title: item.points
+        for item in load_highlights(path, {"1": 1, "2": 2, "3": 4})
+    }["Film 3"] == 4
+
+
+def test_scheduled_highlight_overlay_does_not_change_points(tmp_path):
+    path = tmp_path / "highlights.json"
+    path.write_text(
+        json.dumps(
+            {
+                "gets": {"hl2": [], "hl4": []},
+                "locations": [
+                    {
+                        "name": "Vue",
+                        "events": [
+                            {
+                                "name": "Wanted",
+                                "hls": "2 4",
+                                "start": "2026-11-01 10:00",
+                                "end": "2026-11-01 11:00",
+                                "url": "https://example.com/wanted",
+                            },
+                            {
+                                "name": "Scheduled only",
+                                "hls": "4",
+                                "start": "2026-11-01 12:00",
+                                "end": "2026-11-01 13:00",
+                                "url": "https://example.com/scheduled-only",
+                            },
+                        ],
+                    }
+                ],
+            }
+        )
+    )
+    assert [(item.title, item.points) for item in load_highlights(path)] == [
+        ("Wanted", 2)
+    ]
+
+
+def test_additional_films_and_preferred_showing(tmp_path):
+    path = tmp_path / "clashfinder"
+    path.write_text(
+        "act = "
+        + json.dumps(
+            {
+                "act": "Animation",
+                "url": "https://example.com/animation",
+                "start": "2026-11-06 11:45",
+                "end": "2026-11-06 13:24",
+                "stage": "Vue, Screen 7",
+            }
+        )
+        + "\nact = "
+        + json.dumps(
+            {
+                "act": "Animation",
+                "url": "https://example.com/animation",
+                "start": "2026-11-08 11:30",
+                "end": "2026-11-08 13:09",
+                "stage": "Everyman Cinema",
+            }
+        )
+        + "\n"
+    )
+    screenings = load_extra_screenings(path, {"https://example.com/animation": 4})
+    assert len(screenings) == 2
+    assert {item.points for item in screenings} == {4}
+    preferred = apply_preferred_showings(
+        screenings, {"https://example.com/animation": "2026-11-06 11:45"}
+    )
+    assert [item.start.day for item in preferred] == [6]

@@ -30,6 +30,9 @@ class PlanningRules:
     unavailable: tuple[tuple[datetime, datetime], ...] = ()
     venue_transfer_minutes: dict[str, int] = field(default_factory=dict)
     minimum_gap_minutes: int = 0
+    max_screenings_per_day: int | None = None
+    max_films: int | None = None
+    excluded_venues: tuple[str, ...] = ()
 
 
 def load_rules(path: Path) -> PlanningRules:
@@ -47,25 +50,43 @@ def load_rules(path: Path) -> PlanningRules:
     minimum_gap = data.get("minimum_gap_minutes", 0)
     if minimum_gap < 0:
         raise ValueError("Minimum gap minutes must be nonnegative")
-    return PlanningRules(tuple(unavailable), transfer, minimum_gap)
+    daily_limit = data.get("max_screenings_per_day")
+    if daily_limit is not None and daily_limit < 1:
+        raise ValueError("Maximum screenings per day must be positive")
+    film_limit = data.get("max_films")
+    if film_limit is not None and film_limit < 1:
+        raise ValueError("Maximum films must be positive")
+    excluded_venues = tuple(data.get("excluded_venues", []))
+    return PlanningRules(
+        tuple(unavailable),
+        transfer,
+        minimum_gap,
+        daily_limit,
+        film_limit,
+        excluded_venues,
+    )
 
 
-def load_highlights(path: Path) -> list[Screening]:
+def load_highlights(
+    path: Path, highlight_points: dict[str, int] | None = None
+) -> list[Screening]:
     data = json.loads(path.read_text())
+    if highlight_points is None:
+        highlight_points = {"1": 1, "2": 2, "3": 3}
     screenings = []
     points_by_film = {}
     for location in data["locations"]:
         for event in location["events"]:
-            highlight = str(event.get("hls", ""))
-            if not highlight or highlight == "0":
+            highlights = str(event.get("hls", "")).split()
+            scored = [group for group in highlights if group in highlight_points]
+            if not scored:
                 continue
-            if highlight not in {"1", "2", "3"}:
-                raise ValueError(
-                    f"Unexpected highlight set for {event['name']}: {highlight}"
-                )
-            if f"hl{highlight}" not in data["gets"]:
-                raise ValueError(f"Highlight set hl{highlight} is missing from export")
-            points = int(highlight)
+            for group in scored:
+                if f"hl{group}" not in data["gets"]:
+                    raise ValueError(f"Highlight set hl{group} is missing from export")
+            points = max(highlight_points[group] for group in scored)
+            if points < 1:
+                raise ValueError(f"Points for {event['name']} must be positive")
             start = datetime.fromisoformat(event["start"])
             end = datetime.fromisoformat(event["end"])
             if end <= start:
@@ -90,6 +111,55 @@ def load_highlights(path: Path) -> list[Screening]:
     if not screenings:
         raise ValueError("No highlighted screenings found")
     return sorted(screenings, key=lambda item: (item.start, item.title, item.venue))
+
+
+def load_extra_screenings(path: Path, points_by_url: dict[str, int]) -> list[Screening]:
+    """Read selected films that were absent from a highlighted export."""
+    if any(points < 1 for points in points_by_url.values()):
+        raise ValueError("Extra film points must be positive")
+    screenings = []
+    found = set()
+    for line in path.read_text().splitlines():
+        if not line.startswith("act = "):
+            continue
+        event = json.loads(line.removeprefix("act = "))
+        url = event["url"]
+        if url not in points_by_url:
+            continue
+        start = datetime.fromisoformat(event["start"])
+        end = datetime.fromisoformat(event["end"])
+        if end <= start:
+            raise ValueError(f"Invalid time range for {event['act']}: {start}–{end}")
+        screenings.append(
+            Screening(
+                film=url,
+                title=event["act"],
+                start=start,
+                end=end,
+                venue=event["stage"],
+                url=url,
+                points=points_by_url[url],
+            )
+        )
+        found.add(url)
+    if missing := set(points_by_url) - found:
+        raise ValueError(f"Extra films not found in {path}: {sorted(missing)}")
+    return screenings
+
+
+def apply_preferred_showings(
+    screenings: list[Screening], preferred: dict[str, str]
+) -> list[Screening]:
+    """Limit named films to one showing when a particular time is preferred."""
+    times = {url: datetime.fromisoformat(start) for url, start in preferred.items()}
+    available = {(item.film, item.start) for item in screenings}
+    if missing := {(url, start) for url, start in times.items()} - available:
+        raise ValueError(f"Preferred showings not found: {sorted(missing)}")
+    return [
+        item
+        for item in screenings
+        if item.film not in times or item.start == times[item.film]
+    ]
 
 
 def incompatible(
@@ -134,13 +204,24 @@ def solve(
     by_film = defaultdict(list)
     for i, screening in enumerate(screenings):
         by_film[screening.film].append(picks[i])
-        if any(
-            screening.start < end and start < screening.end
-            for start, end in rules.unavailable
+        if (
+            any(
+                screening.start < end and start < screening.end
+                for start, end in rules.unavailable
+            )
+            or venue_building(screening.venue) in rules.excluded_venues
         ):
             model.add(picks[i] == 0)
     for choices in by_film.values():
         model.add(sum(choices) <= 1)
+    if rules.max_films is not None:
+        model.add(sum(picks) <= rules.max_films)
+    if rules.max_screenings_per_day is not None:
+        by_day = defaultdict(list)
+        for screening, pick in zip(screenings, picks, strict=True):
+            by_day[screening.start.date()].append(pick)
+        for day_picks in by_day.values():
+            model.add(sum(day_picks) <= rules.max_screenings_per_day)
     transfer = timedelta(minutes=transfer_minutes)
     for i, first in enumerate(screenings):
         for j in range(i + 1, len(screenings)):
@@ -197,6 +278,13 @@ def render(
             f"Minimum gap between all screenings: {rules.minimum_gap_minutes} minutes.",
             "",
         ]
+    if rules.max_screenings_per_day is not None:
+        lines += [
+            f"Maximum screenings per day: {rules.max_screenings_per_day}.",
+            "",
+        ]
+    if rules.max_films is not None:
+        lines += [f"Maximum films: {rules.max_films}.", ""]
     same_day_gaps = [
         int((second.start - first.end).total_seconds() / 60)
         for first, second in zip(selected, selected[1:], strict=False)
@@ -216,6 +304,8 @@ def render(
             for venue, minutes in rules.venue_transfer_minutes.items()
         ]
         lines.append("")
+    if rules.excluded_venues:
+        lines += ["Excluded venues: " + ", ".join(rules.excluded_venues) + ".", ""]
     by_day = defaultdict(list)
     for screening in selected:
         by_day[screening.start.date()].append(screening)
@@ -266,10 +356,32 @@ def main() -> None:
     parser.add_argument("--transfer-minutes", type=int, default=0)
     parser.add_argument("--rules", type=Path, help="JSON availability and venue rules")
     parser.add_argument(
+        "--scenario", type=Path, help="JSON point overrides and additional film URLs"
+    )
+    parser.add_argument(
+        "--clashfinder", type=Path, help="Clashfinder schedule for additional films"
+    )
+    parser.add_argument(
         "--output", type=Path, help="Write the Markdown plan to this path"
     )
     args = parser.parse_args()
-    screenings = load_highlights(args.highlights)
+    scenario = json.loads(args.scenario.read_text()) if args.scenario else {}
+    highlight_points = {"1": 1, "2": 2, "3": 3}
+    highlight_points.update(scenario.get("highlight_points", {}))
+    screenings = load_highlights(args.highlights, highlight_points)
+    extra = scenario.get("additional_films", {})
+    if extra:
+        if not args.clashfinder:
+            parser.error("--clashfinder is required for additional films")
+        if duplicate := set(extra) & {item.film for item in screenings}:
+            raise ValueError(
+                f"Additional films already highlighted: {sorted(duplicate)}"
+            )
+        screenings += load_extra_screenings(args.clashfinder, extra)
+    screenings = apply_preferred_showings(
+        screenings, scenario.get("preferred_showings", {})
+    )
+    screenings.sort(key=lambda item: (item.start, item.title, item.venue))
     rules = load_rules(args.rules) if args.rules else PlanningRules()
     selected = solve(screenings, args.transfer_minutes, rules)
     result = render(screenings, selected, args.transfer_minutes, rules)
