@@ -221,10 +221,14 @@ def render(
     missing = sorted(set(by_film) - chosen, key=lambda film: by_film[film])
     lines += [f"## Unscheduled highlights ({len(missing)})", ""]
     if missing:
-        lines += [
-            f"- [{by_film[film]}]({film}) — {by_points[film]} pt{'s' if by_points[film] != 1 else ''}"
-            for film in missing
-        ]
+        for points in sorted({by_points[film] for film in missing}, reverse=True):
+            group = [film for film in missing if by_points[film] == points]
+            lines += [
+                f"### {points} point{'s' if points != 1 else ''} ({len(group)})",
+                "",
+            ]
+            lines += [f"- [{by_film[film]}]({film})" for film in group]
+            lines.append("")
     else:
         lines.append("None.")
     return "\n".join(lines) + "\n"

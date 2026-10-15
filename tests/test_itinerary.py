@@ -3,7 +3,14 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from itinerary import PlanningRules, Screening, incompatible, load_highlights, solve
+from itinerary import (
+    PlanningRules,
+    Screening,
+    incompatible,
+    load_highlights,
+    render,
+    solve,
+)
 
 
 def screening(
@@ -39,6 +46,18 @@ def test_points_win_first_and_film_count_breaks_ties():
     assert [item.title for item in solve([a, b, c])] == ["A"]
     a_tied = screening("A", "10:00", "12:00", points=2)
     assert {item.title for item in solve([a_tied, b, c])} == {"B", "C"}
+
+
+def test_unscheduled_films_are_grouped_by_points():
+    screenings = [
+        screening("Low", "10:00", "11:00"),
+        screening("High", "10:00", "11:00", points=3),
+        screening("Medium", "10:00", "11:00", points=2),
+    ]
+    missing = render(screenings, [], 20).split("## Unscheduled highlights")[1]
+    assert missing.index("### 3 points") < missing.index("### 2 points")
+    assert missing.index("### 2 points") < missing.index("### 1 point")
+    assert missing.index("High") < missing.index("Medium") < missing.index("Low")
 
 
 def test_transfer_applies_between_buildings_but_not_screens():
