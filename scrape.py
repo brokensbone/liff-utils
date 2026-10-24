@@ -221,7 +221,9 @@ def parse_film(html, url, review=None, runtime_overrides=None, marker=None):
         if description
         else ""
     )
-    rows = page.select('ul[id^="sub-show-list"] li')
+    # The list can also contain informational items (for example, an
+    # audio-description notice) that have no screening date or time.
+    rows = page.select('ul[id^="sub-show-list"] li:not(.type-info)')
     if not rows:
         top_date = page.select_one("div.top-date")
         date_node = top_date.select_one("span.start") if top_date else None
