@@ -155,6 +155,24 @@ class TestScrape(unittest.TestCase):
         self.assertEqual(row["act"], "NOTD: Short Film Competition")
         self.assertEqual(review[0]["minutes"], 30)
 
+    def test_screening_list_ignores_informational_items(self):
+        html = """
+        <div class="desc"><h1>Black Church Bay</h1></div>
+        <div class="extraInfo">Running time: 90</div>
+        <ul id="sub-show-list123">
+          <li class="subshow">
+            <div class="date"><div class="start">Fri 13 Nov</div></div>
+            <div class="time"><span class="start">18:00</span></div>
+            <div class="location">Vue in the Light, Leeds</div>
+            <div class="venue">Screen 7</div>
+          </li>
+          <li class="type-info">Audio Description</li>
+        </ul>
+        """
+        rows = scrape.parse_film(html, "https://example.com/black-church-bay")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(json.loads(rows[0][6:])["start"], "2026-11-13 18:00")
+
     def test_programme_total_takes_precedence_over_listed_shorts(self):
         html = """
         <div class="desc"><h1>Documentary Short Film Panorama</h1></div>
