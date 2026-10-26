@@ -27,7 +27,7 @@ def parse_film(lines):
         filmplace = lines[order_index + 4].strip()
         parse_date = parse_last_date(lines, "%d %B %Y")
         parse_time = parse_last_date(lines, "%I:%M %p").time()
-    except (IndexError, ValueError):
+    except IndexError, ValueError:
         logging.debug("Error parsing date")
         return dump_all_details(lines)
 
