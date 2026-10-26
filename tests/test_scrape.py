@@ -1,4 +1,6 @@
+import contextlib
 import json
+import runpy
 import sqlite3
 import tempfile
 import unittest
@@ -11,6 +13,11 @@ import scrape
 
 ROOT = Path(__file__).resolve().parents[1]
 YEAR_DIR = ROOT / "2026"
+FILM_PAGES = (
+    "pan-s-labyrinth-20th-anniversary-4k-restoration-7nl8",
+    "iron-boy-n31f",
+    "mouse-sbj2",
+)
 
 
 def payloads(filename, url):
@@ -225,6 +232,60 @@ class TestScrape(unittest.TestCase):
         with self.assertRaises(requests.HTTPError):
             scrape.fetch(response.url)
         get.assert_called_once()
+
+    def test_offline_cli_writes_clashfinder_from_cached_pages(self):
+        with tempfile.TemporaryDirectory() as directory:
+            year_dir = Path(directory) / "2026"
+            year_dir.mkdir()
+            parent = "https://www.leedsfilm.com/whats-on/night-of-the-dead"
+            links = [f"/whats-on/{slug}" for slug in FILM_PAGES]
+            links += ["/whats-on/night-of-the-dead", "/whats-on/quiz"]
+            (year_dir / "allfilm-1.html").write_text(
+                "".join(
+                    f'<a class="desc" href="{link}"><h3 class="title">{link}</h3></a>'
+                    for link in links
+                )
+            )
+            (year_dir / "index-exclusions.json").write_text(
+                json.dumps({"https://www.leedsfilm.com/whats-on/quiz": "Quiz"})
+            )
+            mouse_url = "https://www.leedsfilm.com/whats-on/mouse-sbj2"
+            (year_dir / "marathon-groups.json").write_text(
+                json.dumps([{"marker": "NOTD", "parent": parent, "films": [mouse_url]}])
+            )
+            # The parent page is deliberately not cached: offline extraction would
+            # fail if the run tried to read it.
+            with sqlite3.connect(year_dir / "html.db") as db:
+                db.execute("CREATE TABLE cache (url TEXT PRIMARY KEY, html BLOB)")
+                db.executemany(
+                    "INSERT INTO cache VALUES (?, ?)",
+                    [
+                        (
+                            f"https://www.leedsfilm.com/whats-on/{slug}",
+                            (YEAR_DIR / f"{slug}.html").read_bytes(),
+                        )
+                        for slug in FILM_PAGES
+                    ],
+                )
+            db.close()
+
+            argv = ["scrape.py", "--year", "2026", "--offline"]
+            with contextlib.chdir(directory), patch("sys.argv", argv):
+                runpy.run_path(str(ROOT / "scrape.py"), run_name="__main__")
+
+            rows = [
+                json.loads(line.removeprefix("act = "))
+                for line in (year_dir / "clashfinder").read_text().splitlines()
+            ]
+            self.assertEqual(len(rows), 9)
+            self.assertEqual(
+                [row["act"] for row in rows if row["url"] == mouse_url],
+                ["NOTD: Mouse"] * 4,
+            )
+            self.assertEqual(rows[0]["start"], "2026-10-29 15:30")
+            self.assertIsInstance(
+                json.loads((year_dir / "duration-review.json").read_text()), list
+            )
 
 
 if __name__ == "__main__":

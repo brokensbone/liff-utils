@@ -10,6 +10,7 @@ from itinerary import (
     incompatible,
     load_extra_screenings,
     load_highlights,
+    load_rules,
     render,
     solve,
 )
@@ -270,3 +271,23 @@ def test_additional_films_and_preferred_showing(tmp_path):
         screenings, {"https://example.com/animation": "2026-11-06 11:45"}
     )
     assert [item.start.day for item in preferred] == [6]
+
+
+@pytest.mark.parametrize(
+    ("rules", "message"),
+    [
+        (
+            {"unavailable": [{"start": "2026-11-01T12:00", "end": "2026-11-01T10:00"}]},
+            "Invalid unavailable interval",
+        ),
+        ({"venue_transfer_minutes": {"Cottage Road": -5}}, "nonnegative"),
+        ({"minimum_gap_minutes": -1}, "nonnegative"),
+        ({"max_screenings_per_day": 0}, "per day must be positive"),
+        ({"max_films": 0}, "Maximum films must be positive"),
+    ],
+)
+def test_invalid_rules_are_rejected(tmp_path, rules, message):
+    path = tmp_path / "rules.json"
+    path.write_text(json.dumps(rules))
+    with pytest.raises(ValueError, match=message):
+        load_rules(path)
