@@ -53,7 +53,8 @@ class Task:
     def run(self):
         logging.info("GO")
         self.load_schedules()
-        existing_files = glob.glob(f"{OUTDIR}/*/*/*.pdf")
+        # Older runs nested files under a day directory, so clear those too
+        existing_files = glob.glob(f"{OUTDIR}/**/*.pdf", recursive=True)
         for existing_file in existing_files:
             os.remove(existing_file)
         for fname in os.listdir(DIRECTORY):
@@ -77,13 +78,14 @@ class Task:
                     logging.exception("FILE: [%s] [%s]", fname, pagen)
                     raise
 
-                fmt_date = parse_date.strftime("%d")
+                fmt_date = parse_date.strftime("%Y%m%d")
                 fmt_time = parse_time.strftime("%H%M")
                 owner = self.calculate_owner(
                     filmname, filmplace, parse_date, parse_time
                 )
-                outfdir = os.path.join(OUTDIR, owner, fmt_date)
-                outfname = f"{fmt_time} {filmname} ({filmplace}).pdf"
+                outfdir = os.path.join(OUTDIR, owner)
+                # Matches the Dropbox layout the phone shortcut searches by name
+                outfname = f"{fmt_date}-{fmt_time}-{filmname}.pdf"
                 outfpath = os.path.join(outfdir, outfname)
 
                 logging.info(f"{filmname} at {filmplace} {fmt_date} {fmt_time}")

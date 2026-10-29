@@ -191,13 +191,13 @@ class TestTicketSplit(unittest.TestCase):
             self.assertEqual(
                 written,
                 [
-                    "edward/07/0830 Filipiñana (Restored) (Hyde Park).pdf",
-                    "edward/29/1745 Mouse (Vue -  The Light).pdf",
-                    "unknown/29/2100 Bonus Film (Cottage Road).pdf",
+                    "edward/20261029-1745-Mouse.pdf",
+                    "edward/20261107-0830-Filipiñana (Restored).pdf",
+                    "unknown/20261029-2100-Bonus Film.pdf",
                 ],
             )
             for path, title in zip(
-                written, ["Filipiñana", "Mouse", "Bonus Film"], strict=True
+                written, ["Mouse", "Filipiñana", "Bonus Film"], strict=True
             ):
                 pages = PdfReader(root / "out" / path).pages
                 self.assertEqual(len(pages), 1)
