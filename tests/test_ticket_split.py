@@ -73,6 +73,14 @@ def write_ticket_pdf(path, tickets):
 
 
 class TestTicketSplit(unittest.TestCase):
+    def test_ascii_filename_handles_composed_and_combining_accents(self):
+        for title in ("Filipiñana São", "Filipin\u0303ana Sa\u0303o"):
+            with self.subTest(title=title):
+                self.assertEqual(
+                    ticket_split.ascii_filename(f"20261029-2030-{title}.pdf"),
+                    "20261029-2030-Filipinana Sao.pdf",
+                )
+
     def test_parse_ticket_fields(self):
         lines = [""] * 22
         lines[4] = "Order No:"
@@ -136,6 +144,12 @@ class TestTicketSplit(unittest.TestCase):
             self.assertEqual(output.read_bytes(), b"previous ticket")
 
     def test_cli_splits_pdf_pages_into_owner_folders(self):
+        self.assert_cli_output([], "Filipinana")
+
+    def test_cli_can_preserve_unicode_filenames(self):
+        self.assert_cli_output(["--no-normalize"], "Filipiñana")
+
+    def assert_cli_output(self, args, filename_title):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp) / "ticket-split"
             for name in ("in", "out", "schedules"):
@@ -179,7 +193,7 @@ class TestTicketSplit(unittest.TestCase):
 
             with (
                 contextlib.chdir(temp),
-                patch("sys.argv", ["ticket-split.py"]),
+                patch("sys.argv", ["ticket-split.py", *args]),
                 self.assertLogs(level="WARNING") as logs,
             ):
                 runpy.run_path(str(ROOT / "ticket-split.py"), run_name="__main__")
@@ -191,13 +205,13 @@ class TestTicketSplit(unittest.TestCase):
             self.assertEqual(
                 written,
                 [
-                    "edward/07/0830 Filipiñana (Restored) (Hyde Park).pdf",
-                    "edward/29/1745 Mouse (Vue -  The Light).pdf",
-                    "unknown/29/2100 Bonus Film (Cottage Road).pdf",
+                    "edward/20261029-1745-Mouse.pdf",
+                    f"edward/20261107-0830-{filename_title} (Restored).pdf",
+                    "unknown/20261029-2100-Bonus Film.pdf",
                 ],
             )
             for path, title in zip(
-                written, ["Filipiñana", "Mouse", "Bonus Film"], strict=True
+                written, ["Mouse", "Filipiñana", "Bonus Film"], strict=True
             ):
                 pages = PdfReader(root / "out" / path).pages
                 self.assertEqual(len(pages), 1)

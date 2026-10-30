@@ -1,9 +1,11 @@
+import argparse
 import datetime
 import glob
 import itertools
 import json
 import logging
 import os
+import unicodedata
 from pathlib import Path
 
 from pypdf import PdfReader, PdfWriter
@@ -49,11 +51,27 @@ def dump_all_details(lines):
     raise ValueError("Can't parse this ticket")
 
 
+def ascii_filename(filename):
+    # Apple Shortcuts can fail to open PDFs in Preview when their filenames
+    # contain accents (observed with Filipiñana). ASCII avoids this problem for
+    # both composed and combining accents. Only normalize the output filename;
+    # retain original titles for schedule matching and leave PDF text untouched.
+    return (
+        unicodedata.normalize("NFKD", filename)
+        .encode("ascii", "ignore")
+        .decode("ascii")
+    )
+
+
 class Task:
+    def __init__(self, normalize_filenames=True):
+        self.normalize_filenames = normalize_filenames
+
     def run(self):
         logging.info("GO")
         self.load_schedules()
-        existing_files = glob.glob(f"{OUTDIR}/*/*/*.pdf")
+        # Older runs nested files under a day directory, so clear those too
+        existing_files = glob.glob(f"{OUTDIR}/**/*.pdf", recursive=True)
         for existing_file in existing_files:
             os.remove(existing_file)
         for fname in os.listdir(DIRECTORY):
@@ -77,13 +95,16 @@ class Task:
                     logging.exception("FILE: [%s] [%s]", fname, pagen)
                     raise
 
-                fmt_date = parse_date.strftime("%d")
+                fmt_date = parse_date.strftime("%Y%m%d")
                 fmt_time = parse_time.strftime("%H%M")
                 owner = self.calculate_owner(
                     filmname, filmplace, parse_date, parse_time
                 )
-                outfdir = os.path.join(OUTDIR, owner, fmt_date)
-                outfname = f"{fmt_time} {filmname} ({filmplace}).pdf"
+                outfdir = os.path.join(OUTDIR, owner)
+                # Matches the Dropbox layout the phone shortcut searches by name
+                outfname = f"{fmt_date}-{fmt_time}-{filmname}.pdf"
+                if self.normalize_filenames:
+                    outfname = ascii_filename(outfname)
                 outfpath = os.path.join(outfdir, outfname)
 
                 logging.info(f"{filmname} at {filmplace} {fmt_date} {fmt_time}")
@@ -146,7 +167,14 @@ class Task:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Split LIFF ticket PDFs by screening.")
+    parser.add_argument(
+        "--no-normalize",
+        action="store_true",
+        help="Preserve Unicode filenames instead of normalizing them to ASCII.",
+    )
+    args = parser.parse_args()
     logging.basicConfig(level=logging.DEBUG)
-    task = Task()
+    task = Task(normalize_filenames=not args.no_normalize)
     task.run()
     logging.info("EXIT")
