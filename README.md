@@ -30,3 +30,7 @@ The LIFF Box Office has a really irritating habbit of sending you one mega PDF o
 This script eats the PDF, splits it by page, naming each file `YYYYMMDD-HHMM-Title.pdf` so a phone shortcut can find the right ticket by date and time. This makes finding your ticket Very Easy.
 
 The splitter reads PDFs from `ticket-split/in` and owner schedules from `ticket-split/schedules`. It writes one directory per owner under `ticket-split/out` and replaces any existing split PDFs there, so check the schedules and inputs before running it.
+
+Output filenames are normalized to ASCII by default: for example, `Filipiñana` becomes `Filipinana` and `São` becomes `Sao`. Accented filenames can prevent Apple Shortcuts from opening tickets in Preview. Normalization decomposes accented characters and removes remaining non-ASCII characters; it only affects filenames, preserving the PDF contents and original titles used for schedule matching. If different titles normalize to the same output filename, the splitter stops rather than overwriting a ticket.
+
+Run `uv run python ticket-split.py --no-normalize` to preserve the original Unicode filenames.
